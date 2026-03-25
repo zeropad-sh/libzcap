@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 0.1.0)'
+        required: true
+        default: '0.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build_release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Build Release Targets
+        run: |
+          # Extract version from tag or input
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${VERSION#v}" # remove leading 'v' if present
+          
+          # We isolate the build loop to linux currently as Windows/Mac packet capture backends are un-implemented
+          bash ./build_release.sh "$VERSION" linux
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: libzcap v${{ github.event.inputs.version || github.ref_name }}
+          files: releases/*.tar.gz
+          generate_release_notes: true
