@@ -1,0 +1,83 @@
+const std = @import("std");
+const handle_types = @import("handle.zig");
+const CaptureOptions = handle_types.CaptureOptions;
+const PacketView = handle_types.PacketView;
+const Error = handle_types.Error;
+
+pub const pcap_t = opaque {};
+pub const pcap_pkthdr_wpcap = extern struct {
+    tv_sec: i32,
+    tv_usec: i32,
+    caplen: u32,
+    len: u32,
+};
+
+pub const Handle = struct {
+    lib: std.DynLib,
+    pcap_ptr: *pcap_t,
+    options: CaptureOptions,
+
+    pcap_open_live_fn: *const fn ([*:0]const u8, c_int, c_int, c_int, [*]u8) callconv(.c) ?*pcap_t,
+    pcap_next_ex_fn: *const fn (*pcap_t, [*][*]pcap_pkthdr_wpcap, [*][*]u8) callconv(.c) c_int,
+    pcap_close_fn: *const fn (*pcap_t) callconv(.c) void,
+    pcap_geterr_fn: *const fn (*pcap_t) callconv(.c) [*:0]const u8,
+
+    pub fn open(options: CaptureOptions) Error!Handle {
+        var lib = std.DynLib.open("wpcap.dll") catch return Error.LibraryNotFound;
+        errdefer lib.close();
+
+        const pcap_open_live_fn = lib.lookup(*const fn ([*:0]const u8, c_int, c_int, c_int, [*]u8) callconv(.c) ?*pcap_t, "pcap_open_live") orelse return Error.SymbolNotFound;
+        const pcap_next_ex_fn = lib.lookup(*const fn (*pcap_t, [*][*]pcap_pkthdr_wpcap, [*][*]u8) callconv(.c) c_int, "pcap_next_ex") orelse return Error.SymbolNotFound;
+        const pcap_close_fn = lib.lookup(*const fn (*pcap_t) callconv(.c) void, "pcap_close") orelse return Error.SymbolNotFound;
+        const pcap_geterr_fn = lib.lookup(*const fn (*pcap_t) callconv(.c) [*:0]const u8, "pcap_geterr") orelse return Error.SymbolNotFound;
+
+        var errbuf: [256]u8 = undefined;
+        var dev_path: [256]u8 = undefined;
+        @memcpy(dev_path[0..options.device.len], options.device);
+        dev_path[options.device.len] = 0;
+
+        const pcap_ptr = pcap_open_live_fn(
+            @ptrCast(dev_path[0..options.device.len + 1].ptr),
+            @intCast(options.snaplen),
+            if (options.promisc) 1 else 0,
+            @intCast(options.timeout_ms),
+            &errbuf
+        ) orelse return Error.PermissionDenied;
+
+        return Handle{
+            .lib = lib,
+            .pcap_ptr = pcap_ptr,
+            .options = options,
+            .pcap_open_live_fn = pcap_open_live_fn,
+            .pcap_next_ex_fn = pcap_next_ex_fn,
+            .pcap_close_fn = pcap_close_fn,
+            .pcap_geterr_fn = pcap_geterr_fn,
+        };
+    }
+
+    pub fn next(self: *Handle) Error!PacketView {
+        var header: *pcap_pkthdr_wpcap = undefined;
+        var data: [*]u8 = undefined;
+        
+        const res = self.pcap_next_ex_fn(self.pcap_ptr, @ptrCast(&header), @ptrCast(&data));
+        if (res == 1) {
+            return .{
+                .data = data[0..header.caplen],
+                .timestamp_ns = @as(u64, @intCast(header.tv_sec)) * 1_000_000_000 + @as(u64, @intCast(header.tv_usec)) * 1000,
+                .ifindex = 0,
+                .protocol = 0,
+                .captured_len = header.caplen,
+                .original_len = header.len,
+            };
+        } else if (res == 0) {
+            return Error.Timeout;
+        } else {
+            return Error.DeviceNotUp;
+        }
+    }
+
+    pub fn deinit(self: *Handle) void {
+        self.pcap_close_fn(self.pcap_ptr);
+        self.lib.close();
+    }
+};
