@@ -23,7 +23,7 @@ Whether you are building high-speed network analyzers, intrusion detection syste
     *   **Network**: IPv4, IPv6, ARP
     *   **Transport**: TCP, UDP, SCTP, ICMP, ICMPv6
 *   **Thread-Safe Metrics**: Atomic lock-free `packets`, `bytes`, and `drops` hardware reception counters.
-*   **Fully Formatted API**: Doxygen-styled C/C++ header integrations natively documenting robust networking flags.
+*   **Fully Documented API**: Doxygen-styled C/C++ header integrations natively documenting robust networking flags.
 *   **Cross-Platform Builds**: Provided scripts compile `libzcap` structurally producing `.so`, `.dylib`, and `.dll` alongside C-Headers instantly locally.
 
 ## 🛠️ Build & Installation
