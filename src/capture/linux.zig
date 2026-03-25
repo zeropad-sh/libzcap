@@ -59,6 +59,7 @@ pub const Handle = struct {
 
         if (options.filter) |f| {
             h.filter_program = try cBPF.compileRuntime(std.heap.page_allocator, f);
+            try h.setFilter(h.filter_program.?);
         }
 
         return h;
@@ -74,6 +75,19 @@ pub const Handle = struct {
         var idx_buf: [16]u8 = undefined;
         const len = try file.readAll(&idx_buf);
         return std.fmt.parseInt(u32, std.mem.trim(u8, idx_buf[0..len], " \n\r\t"), 10) catch return Error.NoSuchDevice;
+    }
+
+    pub fn setFilter(self: *Handle, prog: []const cBPF.Instruction) Error!void {
+        const sock_fprog = extern struct {
+            len: u16,
+            filter: [*]const cBPF.Instruction,
+        };
+        var fprog: sock_fprog = .{
+            .len = @intCast(prog.len),
+            .filter = prog.ptr,
+        };
+        const SO_ATTACH_FILTER = 26;
+        std.posix.setsockopt(self.fd, std.posix.SOL.SOCKET, SO_ATTACH_FILTER, std.mem.asBytes(&fprog)) catch return Error.InvalidFilter;
     }
 
     pub fn next(self: *Handle) Error!PacketView {

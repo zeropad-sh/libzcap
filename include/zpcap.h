@@ -27,6 +27,7 @@ typedef struct {
 } zpcap_pkthdr;
 
 #define ZPCAP_ERRBUF_SIZE 256
+#define ZPCAP_NETMASK_UNKNOWN 0xffffffff
 
 ZPCAP_API zpcap_t *zpcap_open_live(const char *device, int snaplen, int promisc, int to_ms, char *errbuf);
 ZPCAP_API const uint8_t *zpcap_next(zpcap_t *p, zpcap_pkthdr *h);
@@ -41,6 +42,23 @@ typedef struct zpcap_dumper zpcap_dumper_t;
 ZPCAP_API zpcap_dumper_t *zpcap_dump_open(zpcap_t *p, const char *fname);
 ZPCAP_API void zpcap_dump(uint8_t *user, const zpcap_pkthdr *h, const uint8_t *sp);
 ZPCAP_API void zpcap_dump_close(zpcap_dumper_t *p);
+
+struct zpcap_bpf_insn {
+    uint16_t code;
+    uint8_t  jt;
+    uint8_t  jf;
+    uint32_t k;
+};
+
+struct zpcap_bpf_program {
+    uint32_t bf_len;
+    struct zpcap_bpf_insn *bf_insns;
+};
+
+ZPCAP_API zpcap_t *zpcap_open_offline(const char *fname, char *errbuf);
+ZPCAP_API int zpcap_compile(zpcap_t *p, struct zpcap_bpf_program *fp, const char *str, int optimize, uint32_t netmask);
+ZPCAP_API int zpcap_setfilter(zpcap_t *p, struct zpcap_bpf_program *fp);
+ZPCAP_API void zpcap_freecode(struct zpcap_bpf_program *fp);
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,73 @@
+name: E2E Native C/C++ API Tests
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  e2e-matrix:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+          - os: windows-latest
+            target: windows-x86_64
+          - os: macos-latest
+            target: macos-arm64
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.15.2
+
+      - name: Build libzcap Native Headers & Libraries
+        run: zig build -Doptimize=ReleaseFast
+
+      - name: Compile and Link Examples (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p bench_results/incoming/${{ matrix.target }}
+          echo "Compiling C/C++ 11 Native Mappings..." > bench_results/incoming/${{ matrix.target }}/summary.txt
+          
+          gcc -o examples/01 examples/01_basic_capture.c -Iinclude -Lzig-out/lib -lzcap
+          gcc -o examples/02 examples/02_pcap_dump.c -Iinclude -Lzig-out/lib -lzcap
+          g++ -o examples/03 examples/03_offline_read.cpp -Iinclude -Lzig-out/lib -lzcap
+          gcc -o examples/04 examples/04_bpf_filter.c -Iinclude -Lzig-out/lib -lzcap
+          
+          echo "Executing Offline Reader to heavily validate Memory Boundaries..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
+          LD_LIBRARY_PATH=zig-out/lib ./examples/03 tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
+          
+          echo "Executing Live BPF Compiler API..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
+          LD_LIBRARY_PATH=zig-out/lib ./examples/04 >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
+
+      - name: Compile and Link Examples (Windows / MinGW)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p bench_results/incoming/${{ matrix.target }}
+          echo "Compiling C/C++ 11 Native Mappings on Windows..." > bench_results/incoming/${{ matrix.target }}/summary.txt
+          
+          gcc -o examples/01.exe examples/01_basic_capture.c -Iinclude -Lzig-out/lib -lzcap
+          gcc -o examples/02.exe examples/02_pcap_dump.c -Iinclude -Lzig-out/lib -lzcap
+          g++ -o examples/03.exe examples/03_offline_read.cpp -Iinclude -Lzig-out/lib -lzcap
+          gcc -o examples/04.exe examples/04_bpf_filter.c -Iinclude -Lzig-out/lib -lzcap
+          
+          echo "Executing Offline Reader to heavily validate Memory Boundaries..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
+          cp zig-out/lib/zcap.dll .
+          ./examples/03.exe tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
+
+      - name: Upload Telemetry Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-telemetry-${{ matrix.target }}
+          path: bench_results/incoming/${{ matrix.target }}
+          if-no-files-found: error

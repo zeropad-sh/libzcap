@@ -5,6 +5,7 @@ const handle_types = @import("handle.zig");
 const CaptureOptions = handle_types.CaptureOptions;
 const PacketView = handle_types.PacketView;
 const Error = handle_types.Error;
+const cBPF = @import("../filter/cbpf.zig");
 
 pub const Handle = struct {
     fd: os.fd_t,
@@ -39,6 +40,20 @@ pub const Handle = struct {
             .options = options,
             .buffer = buffer,
         };
+    }
+
+    pub fn setFilter(self: *Handle, prog: []const cBPF.Instruction) Error!void {
+        const bpf_program = extern struct {
+            bf_len: c_uint,
+            bf_insns: [*]const cBPF.Instruction,
+        };
+        var fprog: bpf_program = .{
+            .bf_len = @intCast(prog.len),
+            .bf_insns = prog.ptr,
+        };
+        const BIOCSETF = 0x80104267; // standard macOS / BSD ioctl for struct bpf_program
+        const rc = std.posix.system.ioctl(self.fd, BIOCSETF, @intFromPtr(&fprog));
+        if (rc != 0) return Error.InvalidFilter;
     }
 
     pub fn next(self: *Handle) Error!PacketView {

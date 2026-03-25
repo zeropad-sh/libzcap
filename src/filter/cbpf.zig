@@ -36,15 +36,15 @@ pub const Mode = enum(u8) {
     msh = 0x60,
 };
 
-pub const Instruction = struct {
-    code: u8,
+pub const Instruction = extern struct {
+    code: u16,
     jt: u8,
     jf: u8,
     k: u32,
 
     pub fn ld(size: Size, mode: Mode, offset: u32) Instruction {
         return .{
-            .code = @intFromEnum(Opcode.ld) | @intFromEnum(size) | @intFromEnum(mode),
+            .code = @as(u16, @intFromEnum(Opcode.ld)) | @as(u16, @intFromEnum(size)) | @as(u16, @intFromEnum(mode)),
             .jt = 0,
             .jf = 0,
             .k = offset,
@@ -53,7 +53,7 @@ pub const Instruction = struct {
 
     pub fn ldx(size: Size, mode: Mode, offset: u32) Instruction {
         return .{
-            .code = @intFromEnum(Opcode.ldx) | @intFromEnum(size) | @intFromEnum(mode),
+            .code = @as(u16, @intFromEnum(Opcode.ldx)) | @as(u16, @intFromEnum(size)) | @as(u16, @intFromEnum(mode)),
             .jt = 0,
             .jf = 0,
             .k = offset,
@@ -85,14 +85,6 @@ pub const Instruction = struct {
             .jf = 0,
             .k = k,
         };
-    }
-
-    pub fn emit(self: Instruction, writer: anytype) !void {
-        try writer.writeInt(u16, 0, .little);
-        try writer.writeInt(u16, self.code, .little);
-        try writer.writeInt(u32, self.k, .little);
-        try writer.writeInt(u8, self.jt, .little);
-        try writer.writeInt(u8, self.jf, .little);
     }
 };
 
