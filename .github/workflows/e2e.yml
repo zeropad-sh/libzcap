@@ -66,7 +66,21 @@ jobs:
           gcc -o examples/04.exe examples/04_bpf_filter.c -Iinclude -Lzig-out/lib -lzcap
           
           echo "Executing Offline Reader to heavily validate Memory Boundaries..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
-          cp zig-out/lib/zcap.dll .
+          $ZCAP_DLL = "zig-out/bin/zcap.dll"
+          if (-not (Test-Path $ZCAP_DLL)) {
+            if (Test-Path "zig-out/lib/zcap.dll") {
+              $ZCAP_DLL = "zig-out/lib/zcap.dll"
+            } elseif (Test-Path "zig-out/bin/libzcap.dll") {
+              $ZCAP_DLL = "zig-out/bin/libzcap.dll"
+            } elseif (Test-Path "zig-out/lib/libzcap.dll") {
+              $ZCAP_DLL = "zig-out/lib/libzcap.dll"
+            } else {
+              Get-ChildItem -Recurse -Path zig-out | Select-Object -ExpandProperty FullName
+              throw "Could not locate zcap.dll in zig-out."
+            }
+          }
+          Copy-Item -Path $ZCAP_DLL -Destination . -Force
+          $env:PATH = "$((Get-Location).Path);$env:PATH"
           ./examples/03.exe tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
 
       - name: Upload Telemetry Logs
