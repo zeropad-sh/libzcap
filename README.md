@@ -28,14 +28,16 @@ Whether you are building high-speed network analyzers, intrusion detection syste
 
 ## 🛠️ Build & Installation
 
-`libzcap` is built natively utilizing [Zig 0.15.2+](https://ziglang.org/).
+`libzcap` is built natively using Zig `0.15.2+` from source.
+
+For users who do not want to build, prebuilt packages are published on GitHub Releases.
 
 ```bash
 # Clone the repository
 git clone https://github.com/seekaddo/libzcap.git
 cd libzcap
 
-# Build and run the rigorous zero-copy protocol test suite
+# Build the release artifacts
 zig build test
 ```
 
