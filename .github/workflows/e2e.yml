@@ -36,40 +36,48 @@ jobs:
       - name: Build examples (Linux / macOS)
         if: runner.os != 'Windows'
         run: |
+          set -euo pipefail
+          SUMMARY="bench_results/incoming/${{ matrix.target }}/summary.txt"
           mkdir -p bench_results/incoming/${{ matrix.target }}
-          echo "Compiling C/C++ native mappings with a single command..." > bench_results/incoming/${{ matrix.target }}/summary.txt
+          echo "Compiling C/C++ native mappings with a single command..." | tee "$SUMMARY"
 
-          ./build_examples.sh
+          ./build_examples.sh 2>&1 | tee -a "$SUMMARY"
 
-          ls examples/build >> bench_results/incoming/${{ matrix.target }}/summary.txt
+          ls examples/build 2>&1 | tee -a "$SUMMARY"
 
       - name: Run offline and compatibility smoke tests (Linux / macOS)
         if: runner.os != 'Windows'
         run: |
+          set -euo pipefail
+          SUMMARY="bench_results/incoming/${{ matrix.target }}/summary.txt"
           mkdir -p bench_results/incoming/${{ matrix.target }}
+          if [ ! -f "$SUMMARY" ]; then
+            echo "Running offline and compatibility examples..." | tee "$SUMMARY"
+          else
+            echo "Running offline and compatibility examples..." | tee -a "$SUMMARY"
+          fi
           
           export ZCAP_LIB_PATH="zig-out/lib"
           export LD_LIBRARY_PATH="$ZCAP_LIB_PATH"
           export DYLD_LIBRARY_PATH="$ZCAP_LIB_PATH"
           
-          echo "Running offline and compatibility examples..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
-
-          ./examples/build/03_offline_read_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
-          ./examples/build/07_offline_split_ipv4_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
-          ./examples/build/09_offline_split_transport_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
-          ./examples/build/08_offline_protocol_stats_c tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
-          ./examples/build/11_findalldevs_lookupdev_c >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
-          ./examples/build/12_nonblocking_stats_c tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
-          ./examples/build/15_findalldevs_lookupdev_cpp >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
-          ./examples/build/16_nonblocking_stats_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
-          ./examples/build/19_async_native_wait_cpp --offline tests/sample.pcap 18 >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/03_offline_read_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/07_offline_split_ipv4_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/09_offline_split_transport_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/08_offline_protocol_stats_c tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/11_findalldevs_lookupdev_c 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/12_nonblocking_stats_c tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/15_findalldevs_lookupdev_cpp 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/16_nonblocking_stats_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/19_async_native_wait_cpp --offline tests/sample.pcap 18 2>&1 | tee -a "$SUMMARY"
 
       - name: Compile and Link Examples (Windows / MinGW)
         if: runner.os == 'Windows'
         run: |
           $ErrorActionPreference = "Stop"
+          $Summary = "bench_results\incoming\${{ matrix.target }}\summary.txt"
           New-Item -ItemType Directory -Force -Path bench_results\incoming\${{ matrix.target }} | Out-Null
-          Set-Content -Path bench_results\incoming\${{ matrix.target }}\summary.txt -Value "Compiling C/C++ native mappings..."
+          "Compiling C/C++ native mappings with a single command..." | Tee-Object -FilePath $Summary
 
           $CMAKE_ARGS = @(
             "-S", "examples",
@@ -81,14 +89,14 @@ jobs:
           )
 
           if (Get-Command mingw32-make -ErrorAction SilentlyContinue) {
-              cmake -G "MinGW Makefiles" @CMAKE_ARGS
+              cmake -G "MinGW Makefiles" @CMAKE_ARGS 2>&1 | Tee-Object -FilePath $Summary -Append
           } else {
-              cmake @CMAKE_ARGS
+              cmake @CMAKE_ARGS 2>&1 | Tee-Object -FilePath $Summary -Append
           }
 
-          cmake --build examples/build
+          cmake --build examples/build 2>&1 | Tee-Object -FilePath $Summary -Append
 
-          echo "Running offline/native compatibility smoke checks..." >> bench_results\incoming\${{ matrix.target }}\summary.txt
+          "Running offline/native compatibility smoke checks..." | Tee-Object -FilePath $Summary -Append
 
           $zcapCandidates = @(
             "zig-out\\bin\\zcap.dll",
@@ -110,15 +118,15 @@ jobs:
           Copy-Item -Path $ZCAP_DLL -Destination "examples\\build" -Force
           $env:PATH = "$(Get-Location)\\examples\\build;$env:PATH"
 
-          .\examples\build\03_offline_read_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\build\07_offline_split_ipv4_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\build\09_offline_split_transport_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\build\08_offline_protocol_stats_c.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\build\11_findalldevs_lookupdev_c.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\build\12_nonblocking_stats_c.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\build\15_findalldevs_lookupdev_cpp.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\build\16_nonblocking_stats_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\build\19_async_native_wait_cpp.exe --offline tests\sample.pcap 18 >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\03_offline_read_cpp.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
+          .\examples\build\07_offline_split_ipv4_cpp.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
+          .\examples\build\09_offline_split_transport_cpp.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
+          .\examples\build\08_offline_protocol_stats_c.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
+          .\examples\build\11_findalldevs_lookupdev_c.exe 2>&1 | Tee-Object -FilePath $Summary -Append
+          .\examples\build\12_nonblocking_stats_c.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
+          .\examples\build\15_findalldevs_lookupdev_cpp.exe 2>&1 | Tee-Object -FilePath $Summary -Append
+          .\examples\build\16_nonblocking_stats_cpp.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
+          .\examples\build\19_async_native_wait_cpp.exe --offline tests\sample.pcap 18 2>&1 | Tee-Object -FilePath $Summary -Append
 
       - name: Upload Telemetry Logs
         uses: actions/upload-artifact@v4
