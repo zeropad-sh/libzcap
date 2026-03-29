@@ -62,6 +62,7 @@ jobs:
           ./examples/build/12_nonblocking_stats_c tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
           ./examples/build/15_findalldevs_lookupdev_cpp >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
           ./examples/build/16_nonblocking_stats_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/19_async_native_wait_cpp --offline tests/sample.pcap 18 >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
 
       - name: Compile and Link Examples (Windows / MinGW)
         if: runner.os == 'Windows'
@@ -74,7 +75,7 @@ jobs:
             "-S", "examples",
             "-B", "examples/build",
             "-DLIBZCAP_ROOT=$((Get-Location).Path)",
-            "-DLIBZCAP_BUILD_DIR=$((Get-Location).Path)\\zig-out\\lib",
+            "-DLIBZCAP_BUILD_DIR=$((Get-Location).Path)\\zig-out",
             "-DCMAKE_C_COMPILER=gcc",
             "-DCMAKE_CXX_COMPILER=g++"
           )
@@ -89,18 +90,22 @@ jobs:
 
           echo "Running offline/native compatibility smoke checks..." >> bench_results\incoming\${{ matrix.target }}\summary.txt
 
-          $ZCAP_DLL = "zig-out\\bin\\zcap.dll"
-          if (-not (Test-Path $ZCAP_DLL)) {
-            if (Test-Path "zig-out\\lib\\zcap.dll") {
-              $ZCAP_DLL = "zig-out\\lib\\zcap.dll"
-            } elseif (Test-Path "zig-out\\bin\\libzcap.dll") {
-              $ZCAP_DLL = "zig-out\\bin\\libzcap.dll"
-            } elseif (Test-Path "zig-out\\lib\\libzcap.dll") {
-              $ZCAP_DLL = "zig-out\\lib\\libzcap.dll"
-            } else {
-              Get-ChildItem -Recurse -Path zig-out | Select-Object -ExpandProperty FullName
-              throw "Could not locate zcap.dll in zig-out."
+          $zcapCandidates = @(
+            "zig-out\\bin\\zcap.dll",
+            "zig-out\\bin\\libzcap.dll",
+            "zig-out\\lib\\zcap.dll",
+            "zig-out\\lib\\libzcap.dll"
+          )
+          $ZCAP_DLL = $null
+          foreach ($candidate in $zcapCandidates) {
+            if (Test-Path $candidate) {
+              $ZCAP_DLL = $candidate
+              break
             }
+          }
+          if (-not $ZCAP_DLL) {
+            Get-ChildItem -Recurse -Path zig-out | Select-Object -ExpandProperty FullName
+            throw "Could not locate zcap.dll in zig-out."
           }
           Copy-Item -Path $ZCAP_DLL -Destination "examples\\build" -Force
           $env:PATH = "$(Get-Location)\\examples\\build;$env:PATH"
@@ -113,6 +118,7 @@ jobs:
           .\examples\build\12_nonblocking_stats_c.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
           .\examples\build\15_findalldevs_lookupdev_cpp.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
           .\examples\build\16_nonblocking_stats_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\19_async_native_wait_cpp.exe --offline tests\sample.pcap 18 >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
 
       - name: Upload Telemetry Logs
         uses: actions/upload-artifact@v4

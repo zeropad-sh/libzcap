@@ -68,6 +68,7 @@ ZPCAP_API int zpcap_getnonblock(zpcap_t *p, char *errbuf);
 ZPCAP_API int zpcap_setnonblock(zpcap_t *p, int nonblock, char *errbuf);
 ZPCAP_API int zpcap_stats(zpcap_t *p, zpcap_stat_t *stats);
 ZPCAP_API int zpcap_get_selectable_fd(zpcap_t *p);
+ZPCAP_API void *zpcap_getevent(zpcap_t *p);
 
 struct zpcap_bpf_insn {
     uint16_t code;

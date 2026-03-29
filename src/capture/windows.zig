@@ -25,6 +25,7 @@ pub const Handle = struct {
     pcap_setfilter_fn: *const fn (*pcap_t, *const anyopaque) callconv(.c) c_int,
     pcap_sendpacket_fn: *const fn (*pcap_t, [*]const u8, c_int) callconv(.c) c_int,
     pcap_setnonblock_fn: ?*const fn (*pcap_t, c_int, [*]u8) callconv(.c) c_int,
+    pcap_getevent_fn: ?*const fn (*pcap_t) callconv(.c) ?*anyopaque,
 
     pub fn open(options: CaptureOptions) Error!Handle {
         var lib = std.DynLib.open("wpcap.dll") catch return Error.LibraryNotFound;
@@ -37,6 +38,7 @@ pub const Handle = struct {
         const pcap_setfilter_fn = lib.lookup(*const fn (*pcap_t, *const anyopaque) callconv(.c) c_int, "pcap_setfilter") orelse return Error.SymbolNotFound;
         const pcap_sendpacket_fn = lib.lookup(*const fn (*pcap_t, [*]const u8, c_int) callconv(.c) c_int, "pcap_sendpacket") orelse return Error.SymbolNotFound;
         const pcap_setnonblock_fn = lib.lookup(*const fn (*pcap_t, c_int, [*]u8) callconv(.c) c_int, "pcap_setnonblock");
+        const pcap_getevent_fn = lib.lookup(*const fn (*pcap_t) callconv(.c) ?*anyopaque, "pcap_getevent");
 
         var errbuf: [256]u8 = undefined;
         var dev_path: [256]u8 = undefined;
@@ -63,6 +65,7 @@ pub const Handle = struct {
             .pcap_setfilter_fn = pcap_setfilter_fn,
             .pcap_sendpacket_fn = pcap_sendpacket_fn,
             .pcap_setnonblock_fn = pcap_setnonblock_fn,
+            .pcap_getevent_fn = pcap_getevent_fn,
         };
     }
 
@@ -127,5 +130,10 @@ pub const Handle = struct {
     pub fn getSelectableFd(self: *Handle) c_int {
         _ = self;
         return -1;
+    }
+
+    pub fn getEventHandle(self: *Handle) ?*anyopaque {
+        const getevent = self.pcap_getevent_fn orelse return null;
+        return getevent(self.pcap_ptr);
     }
 };

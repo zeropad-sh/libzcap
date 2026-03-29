@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="${ROOT_DIR}/zig-out/lib"
+BUILD_DIR="${ROOT_DIR}/zig-out"
 EXAMPLES_BUILD_DIR="${ROOT_DIR}/examples/build"
 JOBS="${CMAKE_BUILD_PARALLEL_LEVEL:-}"
 
@@ -18,7 +18,8 @@ if [ ! -d "$BUILD_DIR" ]; then
     exit 1
 fi
 
-if ! compgen -G "$BUILD_DIR"/libzcap* >/dev/null 2>&1; then
+if ! compgen -G "$BUILD_DIR"/lib/libzcap* >/dev/null 2>&1 \
+    && ! compgen -G "$BUILD_DIR"/bin/zcap* >/dev/null 2>&1; then
     echo "Error: no libzcap artifact was found under $BUILD_DIR."
     echo "Run 'zig build' first, or set a custom build dir by editing BUILD_DIR in this script."
     exit 1

@@ -695,6 +695,14 @@ export fn zpcap_get_selectable_fd(p: *zpcap_t) c_int {
     };
 }
 
+export fn zpcap_getevent(p: *zpcap_t) ?*anyopaque {
+    const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    return switch (ctx.source) {
+        .live => |live_h| if (builtin.os.tag == .windows) live_h.getEventHandle() else null,
+        .offline => null,
+    };
+}
+
 export fn zpcap_setnonblock(p: *zpcap_t, nonblock: c_int, errbuf: ?[*]u8) c_int {
     const ctx: *PcapContext = @ptrCast(@alignCast(p));
     if (nonblock != 0 and nonblock != 1) {
