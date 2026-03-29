@@ -51,4 +51,21 @@ pub fn build(b: *std.Build) void {
         run_tests.addArgs(args);
     }
     test_step.dependOn(&run_tests.step);
+
+    const feature_probe = b.addExecutable(.{
+        .name = "linux-feature-probe",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("tools/linux_feature_probe.zig"),
+            .imports = &.{.{ .name = "libzcap", .module = mod }},
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+
+    const run_feature_probe = b.addRunArtifact(feature_probe);
+    const feature_probe_step = b.step("feature-probe", "Run linux kernel feature probe");
+    if (b.args) |args| {
+        run_feature_probe.addArgs(args);
+    }
+    feature_probe_step.dependOn(&run_feature_probe.step);
 }

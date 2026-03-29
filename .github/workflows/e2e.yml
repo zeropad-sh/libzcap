@@ -59,6 +59,7 @@ jobs:
           fi
 
           zig build test -Doptimize=ReleaseFast 2>&1 | tee -a "$SUMMARY"
+          zig build feature-probe -Doptimize=ReleaseFast 2>&1 | tee -a "$SUMMARY"
 
       - name: Run offline and compatibility smoke tests (Linux / macOS)
         if: runner.os != 'Windows'
