@@ -5,9 +5,14 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <zpcap.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/select.h>
 #include <unistd.h>
-#include <zpcap.h>
+#endif
 
 int main(int argc, char **argv) {
     char errbuf[ZPCAP_ERRBUF_SIZE];
@@ -39,7 +44,15 @@ int main(int argc, char **argv) {
     zpcap_pkthdr *hdr = nullptr;
     const uint8_t *pkt = nullptr;
     int handled = 0;
+#ifdef _WIN32
+    if (fd >= 0) {
+        std::cout << "Windows select backend is unsupported in this example, using non-blocking polling fallback.\n";
+        fd = -1;
+    }
+#endif
+
     while (handled < max_packets) {
+#ifndef _WIN32
         if (fd >= 0) {
             fd_set fds;
             FD_ZERO(&fds);
@@ -61,6 +74,7 @@ int main(int argc, char **argv) {
                 continue;
             }
         }
+#endif
 
         int rc = zpcap_next_ex(handle, &hdr, &pkt);
         if (rc == 1) {

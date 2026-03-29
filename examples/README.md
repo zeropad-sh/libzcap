@@ -48,4 +48,7 @@ sudo LD_LIBRARY_PATH=zig-out/lib ./examples/basic
 g++ -std=c++11 -o examples/offline examples/03_offline_read.cpp -Iinclude -Lzig-out/lib -lzcap
 ```
 
+> For Windows users, prefer the CMake flow above because `-lzcap` may not
+> resolve depending on your local Mingw/Visual Studio/ABI pairing.
+
 All docs and copy-paste examples now live under [docs/](../docs/README.md).

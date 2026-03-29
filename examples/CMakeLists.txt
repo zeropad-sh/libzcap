@@ -9,9 +9,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(LIBZCAP_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." CACHE PATH "Path to the libzcap checkout")
 set(LIBZCAP_BUILD_DIR "${LIBZCAP_ROOT}/zig-out/lib" CACHE PATH "Path containing built libzcap library")
 
+set(ZCAP_LIBRARY_NAMES zcap libzcap)
+if (WIN32)
+    list(APPEND ZCAP_LIBRARY_NAMES
+        zcap.lib libzcap.lib
+        zcap.dll.a libzcap.dll.a
+    )
+endif()
+
 find_library(
     ZCAP_LIBRARY
-    NAMES zcap libzcap
+    NAMES ${ZCAP_LIBRARY_NAMES}
     PATHS "${LIBZCAP_BUILD_DIR}"
     NO_DEFAULT_PATH
 )

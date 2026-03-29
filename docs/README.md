@@ -21,11 +21,13 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
 - [C99 Device Discovery](./examples/c99-find-devices.md): list capture interfaces and get the default device.
 - [C99 Non-Blocking + Stats](./examples/c99-nonblocking-stats.md): modern async style capture loop and stats.
 - [C99 Packet Injection](./examples/c99-send-packet.md): `zpcap_sendpacket` and `zpcap_send`.
-- [C99 Async Select Loop](./examples/c99-async-select.md): event-driven capture with `select()` and `zpcap_get_selectable_fd`.
+- [C99 Async Select Loop](./examples/c99-async-select.md): event-driven capture with
+  `zpcap_get_selectable_fd` (or polling fallback when fd integration is unavailable).
 - [C++11 Device Discovery](./examples/cpp11-find-devices.md): C++ version of interface listing and default lookup.
 - [C++11 Non-Blocking + Stats](./examples/cpp11-nonblocking-stats.md): `setnonblock`, `next_ex`, and stats in C++.
 - [C++11 Packet Injection](./examples/cpp11-send-packet.md): equivalent C++ sample for send APIs.
-- [C++11 Async Select Loop](./examples/cpp11-async-select.md): event-driven capture with `select()` and `zpcap_get_selectable_fd`.
+- [C++11 Async Select Loop](./examples/cpp11-async-select.md): event-driven capture with
+  `zpcap_get_selectable_fd` (or polling fallback when fd integration is unavailable).
 - [Zero-Copy Architecture](./features/zero-copy.md): how capture buffers avoid copies.
 - [Cross-Platform Backends](./features/platform-backends.md): Linux/macOS/BSD/Windows behavior and prerequisites.
 - [`zpcap` Compatibility Layer](./features/compatibility-layer.md): API mapping and migration path.

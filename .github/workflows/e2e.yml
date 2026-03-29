@@ -69,28 +69,23 @@ jobs:
           $ErrorActionPreference = "Stop"
           New-Item -ItemType Directory -Force -Path bench_results\incoming\${{ matrix.target }} | Out-Null
           Set-Content -Path bench_results\incoming\${{ matrix.target }}\summary.txt -Value "Compiling C/C++ native mappings..."
-          
-          $ZCAP_LIB_PATH = "zig-out/lib"
-          $LINK_PATHS = @("$ZCAP_LIB_PATH", "zig-out/bin")
-          $LDFLAGS = ($LINK_PATHS | ForEach-Object { "-L""$_""" }) -join " "
-          gcc -std=c99 -o examples\01_basic_capture.exe examples\01_basic_capture.c -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\02_pcap_dump.exe examples\02_pcap_dump.c -Iinclude $LDFLAGS -lzcap
-          g++ -std=c++11 -o examples\03_offline_read.exe examples\03_offline_read.cpp -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\04_bpf_filter.exe examples\04_bpf_filter.c -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\05_next_and_stats.exe examples\05_next_and_stats.c -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\06_filtered_capture_to_file.exe examples\06_filtered_capture_to_file.c -Iinclude $LDFLAGS -lzcap
-          g++ -std=c++11 -o examples\07_offline_split_ipv4.exe examples\07_offline_split_ipv4.cpp -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\08_offline_protocol_stats.exe examples\08_offline_protocol_stats.c -Iinclude $LDFLAGS -lzcap
-          g++ -std=c++11 -o examples\09_offline_split_transport.exe examples\09_offline_split_transport.cpp -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\10_live_capture_options.exe examples\10_live_capture_options.c -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\11_findalldevs_lookupdev.exe examples\11_findalldevs_lookupdev.c -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\12_nonblocking_stats.exe examples\12_nonblocking_stats.c -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\13_send_packet.exe examples\13_send_packet.c -Iinclude $LDFLAGS -lzcap
-          g++ -std=c++11 -o examples\15_findalldevs_lookupdev.exe examples\15_findalldevs_lookupdev.cpp -Iinclude $LDFLAGS -lzcap
-          g++ -std=c++11 -o examples\16_nonblocking_stats.exe examples\16_nonblocking_stats.cpp -Iinclude $LDFLAGS -lzcap
-          g++ -std=c++11 -o examples\17_send_packet.exe examples\17_send_packet.cpp -Iinclude $LDFLAGS -lzcap
-          gcc -std=c99 -o examples\18_async_select.exe examples\18_async_select.c -Iinclude $LDFLAGS -lzcap
-          g++ -std=c++11 -o examples\18_async_select_cpp.exe examples\18_async_select.cpp -Iinclude $LDFLAGS -lzcap
+
+          $CMAKE_ARGS = @(
+            "-S", "examples",
+            "-B", "examples/build",
+            "-DLIBZCAP_ROOT=$((Get-Location).Path)",
+            "-DLIBZCAP_BUILD_DIR=$((Get-Location).Path)\\zig-out\\lib",
+            "-DCMAKE_C_COMPILER=gcc",
+            "-DCMAKE_CXX_COMPILER=g++"
+          )
+
+          if (Get-Command mingw32-make -ErrorAction SilentlyContinue) {
+              cmake -G "MinGW Makefiles" @CMAKE_ARGS
+          } else {
+              cmake @CMAKE_ARGS
+          }
+
+          cmake --build examples/build
 
           echo "Running offline/native compatibility smoke checks..." >> bench_results\incoming\${{ matrix.target }}\summary.txt
 
@@ -107,17 +102,17 @@ jobs:
               throw "Could not locate zcap.dll in zig-out."
             }
           }
-          Copy-Item -Path $ZCAP_DLL -Destination . -Force
-          $env:PATH = "$((Get-Location).Path);$env:PATH"
+          Copy-Item -Path $ZCAP_DLL -Destination "examples\\build" -Force
+          $env:PATH = "$(Get-Location)\\examples\\build;$env:PATH"
 
-          .\examples\03_offline_read.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\07_offline_split_ipv4.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\09_offline_split_transport.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\08_offline_protocol_stats.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\11_findalldevs_lookupdev.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\12_nonblocking_stats.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\15_findalldevs_lookupdev.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
-          .\examples\16_nonblocking_stats.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\03_offline_read_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\07_offline_split_ipv4_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\09_offline_split_transport_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\08_offline_protocol_stats_c.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\11_findalldevs_lookupdev_c.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\12_nonblocking_stats_c.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\15_findalldevs_lookupdev_cpp.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\build\16_nonblocking_stats_cpp.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
 
       - name: Upload Telemetry Logs
         uses: actions/upload-artifact@v4

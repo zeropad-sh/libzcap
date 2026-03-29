@@ -1,6 +1,8 @@
-# C++11 Example: Event-Loop Capture (select + zpcap_next_ex)
+# C++11 Example: Event-Loop Capture
 
-This example shows a non-blocking, async-style loop that integrates `select()` with `zpcap_next_ex`.
+This example shows a non-blocking, async-style loop that uses
+`zpcap_get_selectable_fd` when available and falls back to polling when the
+handle cannot be integrated into `select()`.
 
 ## Source (`examples/18_async_select.cpp`)
 
@@ -8,13 +10,17 @@ This example shows a non-blocking, async-style loop that integrates `select()` w
 #include <cerrno>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
 #include <iostream>
-#include <sys/select.h>
 #include <thread>
 #include <chrono>
-#include <unistd.h>
 #include <zpcap.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/select.h>
+#include <unistd.h>
+#endif
 
 int main(int argc, char **argv) {
     char errbuf[ZPCAP_ERRBUF_SIZE];
@@ -46,7 +52,15 @@ int main(int argc, char **argv) {
     zpcap_pkthdr *hdr = nullptr;
     const uint8_t *pkt = nullptr;
     int handled = 0;
+#ifdef _WIN32
+    if (fd >= 0) {
+        std::cout << "Windows select backend is unavailable; using non-blocking polling fallback.\n";
+        fd = -1;
+    }
+#endif
+
     while (handled < max_packets) {
+#ifndef _WIN32
         if (fd >= 0) {
             fd_set fds;
             FD_ZERO(&fds);
@@ -68,6 +82,7 @@ int main(int argc, char **argv) {
                 continue;
             }
         }
+#endif
 
         int rc = zpcap_next_ex(handle, &hdr, &pkt);
         if (rc == 1) {
@@ -103,13 +118,13 @@ int main(int argc, char **argv) {
 ## Build and run
 
 ```bash
-zig build
-g++ -std=c++11 -o docs/examples/cpp11-async-select examples/18_async_select.cpp -Iinclude -Lzig-out/lib -lzcap
-LD_LIBRARY_PATH=zig-out/lib ./docs/examples/cpp11-async-select
+cmake -S examples -B examples/build -DLIBZCAP_ROOT="$(pwd)" -DLIBZCAP_BUILD_DIR="$(pwd)/zig-out/lib"
+cmake --build examples/build
+./examples/build/18_async_select_cpp
 ```
 
 ## What this shows
 
-- event-driven readiness with `select`
+- event-driven readiness with `zpcap_get_selectable_fd` where supported
 - non-blocking capture semantics via `zpcap_setnonblock`
 - graceful fallback when file descriptor path is unavailable

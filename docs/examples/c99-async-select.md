@@ -1,17 +1,24 @@
-# C99 Example: Event-Loop Capture (select + zpcap_next_ex)
+# C99 Example: Event-Loop Capture
 
-This example uses `zpcap_get_selectable_fd` and `select()` so your app can integrate packet capture into a real async/event-loop path.
+This example uses `zpcap_get_selectable_fd` when available, and falls back to
+non-blocking polling when no file descriptor integration exists (for example,
+on Windows with some drivers).
 
 ## Source (`examples/18_async_select.c`)
 
 ```c
 #include <stdint.h>
 #include <stdio.h>
-#include <sys/select.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <zpcap.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/select.h>
+#include <unistd.h>
+#endif
 
 int main(int argc, char **argv) {
     char errbuf[ZPCAP_ERRBUF_SIZE];
@@ -43,7 +50,15 @@ int main(int argc, char **argv) {
     zpcap_pkthdr *hdr = NULL;
     const uint8_t *pkt = NULL;
     int handled = 0;
+#ifdef _WIN32
+    if (fd >= 0) {
+        fprintf(stderr, "Windows select backend is unavailable; using non-blocking polling fallback.\n");
+        fd = -1;
+    }
+#endif
+
     while (handled < max_packets) {
+#ifndef _WIN32
         if (fd >= 0) {
             fd_set fds;
             FD_ZERO(&fds);
@@ -65,6 +80,7 @@ int main(int argc, char **argv) {
                 continue;
             }
         }
+#endif
 
         int rc = zpcap_next_ex(handle, &hdr, &pkt);
         if (rc == 1) {
@@ -80,8 +96,12 @@ int main(int argc, char **argv) {
 
         if (rc == 0) {
             if (fd < 0) {
+#ifdef _WIN32
+                Sleep(10);
+#else
                 struct timeval delay = {0, 10 * 1000};
                 select(0, NULL, NULL, NULL, &delay);
+#endif
                 continue;
             }
             continue;
@@ -99,13 +119,13 @@ int main(int argc, char **argv) {
 ## Build and run
 
 ```bash
-zig build
-gcc -std=c99 -o docs/examples/c99-async-select examples/18_async_select.c -Iinclude -Lzig-out/lib -lzcap
-LD_LIBRARY_PATH=zig-out/lib ./docs/examples/c99-async-select
+cmake -S examples -B examples/build -DLIBZCAP_ROOT="$(pwd)" -DLIBZCAP_BUILD_DIR="$(pwd)/zig-out/lib"
+cmake --build examples/build
+./examples/build/18_async_select_c
 ```
 
 ## What this shows
 
-- event-driven capture path with file descriptor readiness
+- event-driven capture path with `zpcap_get_selectable_fd` when supported
 - `zpcap_next_ex` return value handling (`1`, `0`, `-2`)
 - fallback behavior when `zpcap_get_selectable_fd` is unavailable
