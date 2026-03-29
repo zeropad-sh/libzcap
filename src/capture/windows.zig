@@ -36,15 +36,16 @@ pub const Handle = struct {
 
         var errbuf: [256]u8 = undefined;
         var dev_path: [256]u8 = undefined;
+        if (options.device.len >= dev_path.len) return Error.NoSuchDevice;
         @memcpy(dev_path[0..options.device.len], options.device);
         dev_path[options.device.len] = 0;
 
         const pcap_ptr = pcap_open_live_fn(
-            @ptrCast(dev_path[0..options.device.len + 1].ptr),
+            @ptrCast(dev_path[0 .. options.device.len + 1].ptr),
             @intCast(options.snaplen),
             if (options.promisc) 1 else 0,
             @intCast(options.timeout_ms),
-            &errbuf
+            &errbuf,
         ) orelse return Error.PermissionDenied;
 
         return Handle{
@@ -75,7 +76,7 @@ pub const Handle = struct {
     pub fn next(self: *Handle) Error!PacketView {
         var header: *pcap_pkthdr_wpcap = undefined;
         var data: [*]u8 = undefined;
-        
+
         const res = self.pcap_next_ex_fn(self.pcap_ptr, @ptrCast(&header), @ptrCast(&data));
         if (res == 1) {
             return .{

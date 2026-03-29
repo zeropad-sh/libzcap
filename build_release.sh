@@ -1,13 +1,13 @@
 #!/bin/bash
 # libzcap Release Builder — builds static libraries and the zigdump CLI for all platforms.
 # Usage: ./build_release.sh [version] [platform]
-# Platforms: all (default), linux, windows, mac
+# Platforms: all (default), linux, windows, mac, macos
 #
 # Examples:
 #   ./build_release.sh              # build all platforms
 #   ./build_release.sh 0.1.0 linux  # build only linux
 #
-# Outputs to ./releases/ with tars named like libzcap-v0.1.0-x86_64-linux.tar.gz
+# Outputs to ./releases/ with tars named like libzcap-v0.1.0-linux-x86_64.tar.gz
 
 set -euo pipefail
 
@@ -59,13 +59,13 @@ case "$PLATFORM" in
     windows)
         for k in "${!WINDOWS_TARGETS[@]}"; do TARGETS[$k]=${WINDOWS_TARGETS[$k]}; done
         ;;
-    mac)
+    mac|macos)
         for k in "${!MACOS_TARGETS[@]}"; do TARGETS[$k]=${MACOS_TARGETS[$k]}; done
         ;;
     *)
         echo "Unknown platform: $PLATFORM"
         echo "Usage: $0 [version] [platform]"
-        echo "Platforms: all, linux, windows, mac"
+        echo "Platforms: all, linux, windows, mac, macos"
         exit 1
         ;;
 esac
@@ -81,9 +81,6 @@ build_for_target() {
 
     echo "Building $PROJECT_NAME for $triple (ReleaseFast)..."
 
-    # NOTE: Since currently libzcap is tightly coupled to Linux AF_PACKET in handle.zig,
-    # cross-compiling for windows/macos might fail at the Zig compilation stage unless 
-    # those backends are implemented or dummied out.
     if ! "$ZIG" build \
         -Doptimize=ReleaseFast \
         -Dtarget="$triple" \
@@ -131,7 +128,7 @@ done
 echo ""
 if (( ${#FAILED_TARGETS[@]} > 0 )); then
     echo "Release build completed with failures: ${FAILED_TARGETS[*]}"
-    echo "Note: Windows and macOS builds will fail until their respective capture backends are implemented."
+    echo "Inspect build output for target-specific dependency or backend issues."
     exit 1
 fi
 

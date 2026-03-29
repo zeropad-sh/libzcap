@@ -28,7 +28,7 @@ pub const Handle = struct {
                 if (err == error.FileNotFound) break;
             }
         }
-        
+
         const valid_fd = fd orelse return Error.PermissionDenied;
         errdefer os.close(valid_fd);
 
@@ -51,7 +51,8 @@ pub const Handle = struct {
             .bf_len = @intCast(prog.len),
             .bf_insns = prog.ptr,
         };
-        const BIOCSETF = 0x80104267; // standard macOS / BSD ioctl for struct bpf_program
+        // BIOCSETF on macOS is 0x80104267 (encoded as a signed c_int here for ioctl ABI compatibility).
+        const BIOCSETF: c_int = -2146418073;
         const rc = std.posix.system.ioctl(self.fd, BIOCSETF, @intFromPtr(&fprog));
         if (rc != 0) return Error.InvalidFilter;
     }
@@ -77,14 +78,14 @@ pub const Handle = struct {
 
         const data_start = self.buf_pos + hdrlen;
         const data_end = data_start + caplen;
-        
+
         if (data_end > self.buf_len) {
             self.buf_len = 0;
             return Error.Timeout;
         }
 
         const data = self.buffer[data_start..data_end];
-        
+
         const total_consumed = hdrlen + caplen;
         const padded_consumed = (total_consumed + 3) & ~@as(u32, 3);
         self.buf_pos += padded_consumed;
