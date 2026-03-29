@@ -2,3 +2,4 @@
 zig-out/
 *.o
 publish_release.sh
+examples/[0-9]*
