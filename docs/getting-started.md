@@ -62,5 +62,14 @@ export LD_LIBRARY_PATH=zig-out/lib
   - [c99-live-capture.md](./examples/c99-live-capture.md)
   - [c99-pcap-dump.md](./examples/c99-pcap-dump.md)
   - [c99-bpf-filter.md](./examples/c99-bpf-filter.md)
+  - [c99-next-and-stats.md](./examples/c99-next-and-stats.md)
+  - [c99-filtered-file-capture.md](./examples/c99-filtered-file-capture.md)
+  - [c99-offline-protocol-stats.md](./examples/c99-offline-protocol-stats.md)
+  - [c99-live-options.md](./examples/c99-live-options.md)
 - C++11 full sample:
   - [cpp11-offline-read.md](./examples/cpp11-offline-read.md)
+  - [cpp11-offline-split.md](./examples/cpp11-offline-split.md)
+  - [cpp11-offline-transport-split.md](./examples/cpp11-offline-transport-split.md)
+
+Advanced workflow:
+- [Advanced Workflows](./features/advanced-workflows.md)

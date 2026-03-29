@@ -9,6 +9,12 @@ These standalone examples demonstrate 1-to-1 operational conformity with histori
 - **`02_pcap_dump.c`**: Direct PCAP stream interception utilizing simple memory pointer wrappers to route network traffic directly securely to the filesystem completely identically to `pcap_dumper_t`.
 - **`03_offline_read.cpp`**: Utilizing strong object parsing dynamically from historical traces generated previously by Wireshark/`tcpdump`.
 - **`04_bpf_filter.c`**: Dynamically routing a live compiled Berkeley Packet Filter (BPF) expression (`tcp port 80`) structurally pushing physical instruction sizes exactly into the standard Linux network stack dynamically.
+- **`05_next_and_stats.c`**: Pull-based packet reads with `zpcap_next` and simple in-app counters.
+- **`06_filtered_capture_to_file.c`**: End-to-end live filtering plus pcap file output in one run.
+- **`07_offline_split_ipv4.cpp`**: Offline IPv4 packet splitter that writes only IPv4 frames to a new capture file.
+- **`08_offline_protocol_stats.c`**: Offline Ethernet frame type counter with zero-copy callback-based stats.
+- **`09_offline_split_transport.cpp`**: Offline dual-output splitter for TCP vs UDP packets.
+- **`10_live_capture_options.c`**: Live capture with configurable device/filter/count/dump target.
 
 ### Compiling and Testing
 You must have successfully generated `libzcap` locally (via `zig build`) before testing. Execute tests seamlessly from the root output structure mapping headers efficiently:
@@ -20,3 +26,5 @@ sudo LD_LIBRARY_PATH=zig-out/lib ./examples/basic
 # Advanced C++ Linking
 g++ -std=c++11 -o examples/offline examples/03_offline_read.cpp -Iinclude -Lzig-out/lib -lzcap
 ```
+
+All docs and copy-paste examples now live under [docs/](../docs/README.md).
