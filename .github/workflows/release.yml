@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version (e.g. 0.1.0)'
+        description: 'Version (e.g. 0.2.0)'
         required: true
-        default: '0.1.0'
+        default: '0.2.0'
 
 permissions:
   contents: write
@@ -33,6 +33,26 @@ jobs:
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           VERSION="${VERSION#v}" # remove leading 'v' if present
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          RELEASE_NOTES_PATH="${RUNNER_TEMP}/release_notes.md"
+          CHANGES="$(awk -v version="$VERSION" '
+            index($0, "## [" version "]") == 1 {capture = 1; next}
+            capture && index($0, "## [") == 1 {capture = 0}
+            capture {print}
+          ' CHANGELOG.md || true)"
+
+          {
+            echo "# libzcap ${VERSION} Release"
+            echo ""
+            if [ -n "$CHANGES" ]; then
+              printf "%s\n" "$CHANGES"
+            else
+              echo "## Highlights"
+              echo "- Release build and packaging updates"
+              echo "- See commit history for detailed changes."
+            fi
+          } > "$RELEASE_NOTES_PATH"
+          echo "RELEASE_NOTES_PATH=$RELEASE_NOTES_PATH" >> $GITHUB_ENV
           
           # Target standard multi-architecture universal compilation (Linux, Windows, MacOS)
           bash ./build_release.sh "$VERSION" all
@@ -43,4 +63,4 @@ jobs:
           tag_name: v${{ env.VERSION }}
           name: libzcap v${{ env.VERSION }}
           files: releases/*.tar.gz
-          generate_release_notes: true
+          body_path: ${{ env.RELEASE_NOTES_PATH }}
