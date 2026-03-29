@@ -20,6 +20,8 @@
 - Loop callback processing
 - BPF compile/apply/free
 - Dumper open/dump/close
+- Optional feature-aware open path on Linux (`zpcap_open_live_ex`)
+- Runtime feature probes (`zpcap_detect_features`, `zpcap_kernel_version`)
 
 ## Current compatibility envelope
 

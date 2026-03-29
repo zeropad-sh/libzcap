@@ -94,9 +94,10 @@ The examples in this section use `zpcap.h` for compatibility parity.
   - [c99-offline-protocol-stats.md](./examples/c99-offline-protocol-stats.md)
   - [c99-live-options.md](./examples/c99-live-options.md)
   - [c99-find-devices.md](./examples/c99-find-devices.md)
-  - [c99-nonblocking-stats.md](./examples/c99-nonblocking-stats.md)
-  - [c99-send-packet.md](./examples/c99-send-packet.md)
-  - [c99-async-select.md](./examples/c99-async-select.md)
+- [c99-nonblocking-stats.md](./examples/c99-nonblocking-stats.md)
+- [c99-send-packet.md](./examples/c99-send-packet.md)
+- [c99-async-select.md](./examples/c99-async-select.md)
+- [c99-linux-kernel-features.md](./examples/c99-linux-kernel-features.md)
 - C++11 full sample:
   - [cpp11-offline-read.md](./examples/cpp11-offline-read.md)
   - [cpp11-offline-split.md](./examples/cpp11-offline-split.md)
@@ -105,6 +106,21 @@ The examples in this section use `zpcap.h` for compatibility parity.
   - [cpp11-nonblocking-stats.md](./examples/cpp11-nonblocking-stats.md)
   - [cpp11-send-packet.md](./examples/cpp11-send-packet.md)
   - [cpp11-async-select.md](./examples/cpp11-async-select.md)
+
+## 8. Linux feature-aware configuration
+
+On Linux, you can request modern capture modes directly with:
+
+- `zpcap_detect_features()` for kernel capability bits
+- `zpcap_kernel_version()` for kernel version diagnostics
+- `zpcap_open_live_ex()` with `zpcap_open_options` to control:
+  - ring mode (`ZPCAP_BUFFER_MODE_RING_MMAP` vs `ZPCAP_BUFFER_MODE_COPY`)
+  - ring fallback behavior (`fallback_to_copy`)
+  - `fanout_mode`/`fanout_group`
+  - `busy_poll_usec`
+
+When a feature is not supported by the kernel, `zpcap_open_live_ex()` will apply
+safe fallback rules and report a clear error for unsupported options.
 
 Advanced workflow:
 - [Advanced Workflows](./features/advanced-workflows.md)

@@ -7,6 +7,8 @@
 - Native AF_PACKET path.
 - Dynamic filter setup is done through socket options.
 - Ring buffer mode is used when the kernel supports it.
+- Advanced Linux options are available through `zpcap_open_live_ex()` and
+  runtime feature checks (`zpcap_detect_features()`).
 
 ## macOS / BSD
 

@@ -28,6 +28,26 @@ typedef struct {
 
 #define ZPCAP_ERRBUF_SIZE 256
 #define ZPCAP_NETMASK_UNKNOWN 0xffffffff
+
+#define ZPCAP_BUFFER_MODE_COPY 0
+#define ZPCAP_BUFFER_MODE_RING_MMAP 1
+
+#define ZPCAP_FANOUT_NONE 255
+#define ZPCAP_FANOUT_HASH 0
+#define ZPCAP_FANOUT_LB 1
+#define ZPCAP_FANOUT_CPU 2
+#define ZPCAP_FANOUT_RANDOM 3
+#define ZPCAP_FANOUT_ROLLOVER 4
+#define ZPCAP_FANOUT_CBPF 5
+#define ZPCAP_FANOUT_EBPF 6
+
+#define ZPCAP_FEATURE_BASIC 0x01
+#define ZPCAP_FEATURE_RING_V3 0x02
+#define ZPCAP_FEATURE_EBPF 0x04
+#define ZPCAP_FEATURE_HW_TSTAMP 0x08
+#define ZPCAP_FEATURE_AF_XDP 0x10
+#define ZPCAP_FEATURE_FANOUT 0x20
+#define ZPCAP_FEATURE_BUSY_POLL 0x40
  
 typedef struct zpcap_if {
     struct zpcap_if *next;
@@ -43,7 +63,28 @@ typedef struct {
     uint32_t ps_ifdrop;
 } zpcap_stat_t;
 
+typedef struct {
+    uint32_t version;
+    uint32_t buffer_mode;
+    uint32_t ring_block_size;
+    uint32_t ring_block_count;
+    uint32_t ring_frame_size;
+    uint32_t ring_frame_count;
+    uint32_t fanout_mode;
+    uint16_t fanout_group;
+    uint32_t busy_poll_usec;
+    int32_t fallback_to_copy;
+} zpcap_open_options;
+
 ZPCAP_API zpcap_t *zpcap_open_live(const char *device, int snaplen, int promisc, int to_ms, char *errbuf);
+ZPCAP_API zpcap_t *zpcap_open_live_ex(
+    const char *device,
+    int snaplen,
+    int promisc,
+    int to_ms,
+    const zpcap_open_options *options,
+    char *errbuf
+);
 ZPCAP_API const uint8_t *zpcap_next(zpcap_t *p, zpcap_pkthdr *h);
 ZPCAP_API void zpcap_close(zpcap_t *p);
 ZPCAP_API const char *zpcap_geterr(zpcap_t *p);
@@ -86,6 +127,8 @@ ZPCAP_API zpcap_t *zpcap_open_offline(const char *fname, char *errbuf);
 ZPCAP_API int zpcap_compile(zpcap_t *p, struct zpcap_bpf_program *fp, const char *str, int optimize, uint32_t netmask);
 ZPCAP_API int zpcap_setfilter(zpcap_t *p, struct zpcap_bpf_program *fp);
 ZPCAP_API void zpcap_freecode(struct zpcap_bpf_program *fp);
+ZPCAP_API uint32_t zpcap_detect_features(void);
+ZPCAP_API int zpcap_kernel_version(int *major, int *minor, int *patch);
 
 #ifdef __cplusplus
 }

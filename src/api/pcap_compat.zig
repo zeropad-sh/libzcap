@@ -10,6 +10,7 @@ const libzcap = struct {
     pub const Handle = @import("../capture/handle.zig").Handle;
     pub const CaptureOptions = @import("../capture/handle.zig").CaptureOptions;
     pub const PacketView = @import("../capture/handle.zig").PacketView;
+    pub const kernel = @import("../capture/kernel.zig");
 };
 
 const ZpcapError = error{
@@ -22,6 +23,19 @@ pub const zpcap_pkthdr = extern struct {
     ts: timeval_z,
     caplen: u32,
     len: u32,
+};
+
+pub const zpcap_open_options = extern struct {
+    version: u32,
+    buffer_mode: u32,
+    ring_block_size: u32,
+    ring_block_count: u32,
+    ring_frame_size: u32,
+    ring_frame_count: u32,
+    fanout_mode: u32,
+    fanout_group: u16,
+    busy_poll_usec: u32,
+    fallback_to_copy: i32,
 };
 
 const timeval_z = extern struct {
@@ -228,15 +242,79 @@ fn captureLoopCore(
     return pkts;
 }
 
-export fn zpcap_open_live(
+fn zpcapFeatureMask() u32 {
+    return libzcap.kernel.KernelVersion.detect().detectFeatures();
+}
+
+fn resolveOpenOptions(
+    snaplen: c_int,
+    promisc: c_int,
+    to_ms: c_int,
+    options: ?*const zpcap_open_options,
+) libzcap.CaptureOptions {
+    var cfg = libzcap.CaptureOptions{
+        .device = "",
+        .snaplen = @intCast(snaplen),
+        .promisc = promisc != 0,
+        .timeout_ms = @intCast(to_ms),
+        .buffer_mode = .ring_mmap,
+        .ring = .{},
+        .fanout = .{},
+        .busy_poll_usec = 0,
+        .fallback_to_copy = true,
+    };
+
+    if (options == null) {
+        return cfg;
+    }
+
+    const req = options.?;
+    if (req.version == 0) {
+        return cfg;
+    }
+
+    switch (req.buffer_mode) {
+        0 => cfg.buffer_mode = .copy,
+        1 => cfg.buffer_mode = .ring_mmap,
+        else => {},
+    }
+
+    if (req.ring_block_size != 0) cfg.ring.block_size = req.ring_block_size;
+    if (req.ring_block_count != 0) cfg.ring.block_count = req.ring_block_count;
+    if (req.ring_frame_size != 0) cfg.ring.frame_size = req.ring_frame_size;
+    if (req.ring_frame_count != 0) cfg.ring.frame_count = req.ring_frame_count;
+
+    cfg.fanout = switch (req.fanout_mode) {
+        0 => .{ .mode = .hash, .group_id = req.fanout_group },
+        1 => .{ .mode = .lb, .group_id = req.fanout_group },
+        2 => .{ .mode = .cpu, .group_id = req.fanout_group },
+        3 => .{ .mode = .random, .group_id = req.fanout_group },
+        4 => .{ .mode = .rollover, .group_id = req.fanout_group },
+        5 => .{ .mode = .cbpf, .group_id = req.fanout_group },
+        6 => .{ .mode = .ebpf, .group_id = req.fanout_group },
+        else => .{},
+    };
+
+    cfg.busy_poll_usec = req.busy_poll_usec;
+    if (req.fallback_to_copy != 0) {
+        cfg.fallback_to_copy = true;
+    } else {
+        cfg.fallback_to_copy = false;
+    }
+    return cfg;
+}
+
+fn openLiveWithOptions(
     device: [*:0]const u8,
     snaplen: c_int,
     promisc: c_int,
     to_ms: c_int,
+    options: ?*const zpcap_open_options,
     errbuf: ?[*]u8,
 ) ?*zpcap_t {
     const alloc = std.heap.page_allocator;
     const dev_str = std.mem.span(device);
+    const cfg = resolveOpenOptions(snaplen, promisc, to_ms, options);
 
     const h = alloc.create(libzcap.Handle) catch {
         setText(errbuf, "Out of memory allocating handle");
@@ -246,10 +324,15 @@ export fn zpcap_open_live(
 
     h.* = libzcap.Handle.open(.{
         .device = dev_str,
-        .snaplen = @intCast(snaplen),
-        .promisc = (promisc != 0),
-        .timeout_ms = @intCast(to_ms),
-        .buffer_mode = .ring_mmap,
+        .snaplen = cfg.snaplen,
+        .promisc = cfg.promisc,
+        .timeout_ms = cfg.timeout_ms,
+        .filter = cfg.filter,
+        .ring = cfg.ring,
+        .buffer_mode = cfg.buffer_mode,
+        .fanout = cfg.fanout,
+        .busy_poll_usec = cfg.busy_poll_usec,
+        .fallback_to_copy = cfg.fallback_to_copy,
     }) catch |err| {
         setText(errbuf, @errorName(err));
         return null;
@@ -267,6 +350,27 @@ export fn zpcap_open_live(
     };
 
     return @ptrCast(ctx);
+}
+
+export fn zpcap_open_live(
+    device: [*:0]const u8,
+    snaplen: c_int,
+    promisc: c_int,
+    to_ms: c_int,
+    errbuf: ?[*]u8,
+) ?*zpcap_t {
+    return openLiveWithOptions(device, snaplen, promisc, to_ms, null, errbuf);
+}
+
+export fn zpcap_open_live_ex(
+    device: [*:0]const u8,
+    snaplen: c_int,
+    promisc: c_int,
+    to_ms: c_int,
+    options: ?*const zpcap_open_options,
+    errbuf: ?[*]u8,
+) ?*zpcap_t {
+    return openLiveWithOptions(device, snaplen, promisc, to_ms, options, errbuf);
 }
 
 export fn zpcap_open_offline(fname: [*:0]const u8, errbuf: ?[*]u8) ?*zpcap_t {
@@ -414,6 +518,24 @@ export fn zpcap_freecode(fp: *zpcap_bpf_program) void {
         std.heap.page_allocator.free(slice);
         fp.bf_len = 0;
     }
+}
+
+export fn zpcap_detect_features() u32 {
+    return zpcapFeatureMask();
+}
+
+export fn zpcap_kernel_version(major: ?*c_int, minor: ?*c_int, patch: ?*c_int) c_int {
+    const version = libzcap.kernel.KernelVersion.detect();
+    if (major != null) {
+        major.?.* = @intCast(version.major);
+    }
+    if (minor != null) {
+        minor.?.* = @intCast(version.minor);
+    }
+    if (patch != null) {
+        patch.?.* = @intCast(version.patch);
+    }
+    return 0;
 }
 
 fn getIfEntriesLinux(allocator: std.mem.Allocator) !?*zpcap_if_t {

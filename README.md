@@ -12,8 +12,9 @@ Whether you are building high-speed network analyzers, intrusion detection syste
 
 ## 🚀 Key Features
 
-*   **Zero-Copy Hardware Accerlation**: Bypasses context switching latency natively on Unix implementations.
+*   **Zero-Copy Hardware Acceleration**: Bypasses context switching latency natively on Unix implementations.
     *   *Linux*: Leverages `AF_PACKET` with memory-mapped `TPACKET_V3` ring buffers.
+    *   Linux modern options: fanout, busy-poll, and copy-mode fallback are detected at runtime from kernel capabilities.
     *   *macOS/BSD*: Natively binds and memory-maps `/dev/bpf` character devices.
     *   *Windows*: Dynamically binds the Npcap `wpcap.dll` runtime without static dependencies whatsoever.
 *   **True Zero-Dependency**: `libzcap` compiles into a tiny, standalone library. There is absolutely no hidden `libpcap` static linkage required across any operating system.
@@ -47,6 +48,7 @@ Use the docs folder for a guided, example-first entry point:
 
 - [Documentation Hub](docs/README.md)
 - [Getting Started](docs/getting-started.md)
+- [Linux Kernel Capabilities](docs/features/linux-kernel-capabilities.md)
 
 ## 🖥️ zigdump CLI Usage
 

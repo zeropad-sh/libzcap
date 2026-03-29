@@ -23,6 +23,7 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
 - [C99 Packet Injection](./examples/c99-send-packet.md): `zpcap_sendpacket` and `zpcap_send`.
 - [C99 Async Select Loop](./examples/c99-async-select.md): event-driven capture with
   `zpcap_get_selectable_fd` (or polling fallback when fd integration is unavailable).
+- [C99 Linux Kernel Features](./examples/c99-linux-kernel-features.md): detect support for `ring_mmap`, fanout, and busy-poll, then request safe fallbacks.
 - [C++11 Device Discovery](./examples/cpp11-find-devices.md): C++ version of interface listing and default lookup.
 - [C++11 Non-Blocking + Stats](./examples/cpp11-nonblocking-stats.md): `setnonblock`, `next_ex`, and stats in C++.
 - [C++11 Packet Injection](./examples/cpp11-send-packet.md): equivalent C++ sample for send APIs.
@@ -32,6 +33,7 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
 - [Cross-Platform Backends](./features/platform-backends.md): Linux/macOS/BSD/Windows behavior and prerequisites.
 - [`zpcap` Compatibility Layer](./features/compatibility-layer.md): API mapping and migration path.
 - [Advanced Capture Workflows](./features/advanced-workflows.md): practical patterns for production use.
+- [Linux Kernel Capabilities](./features/linux-kernel-capabilities.md): supported modern kernel features and fallback behavior.
 
 ## Quick Navigation
 
@@ -48,6 +50,7 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
   - [Non-Blocking + Stats](./examples/c99-nonblocking-stats.md)
   - [Packet Injection](./examples/c99-send-packet.md)
   - [Async Select Loop](./examples/c99-async-select.md)
+  - [Linux Kernel Features](./examples/c99-linux-kernel-features.md)
 - If you need a full sample in C++11, open:
   - [Offline PCAP Reader](./examples/cpp11-offline-read.md)
   - [Offline IPv4 Splitter](./examples/cpp11-offline-split.md)

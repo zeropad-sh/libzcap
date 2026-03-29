@@ -7,6 +7,8 @@ All notable changes to libzcap are documented here.
 ### Added
 - Changelog-driven GitHub release notes with a dedicated `CHANGELOG.md`.
 - Documentation notes for release workflow defaults and CI artifact expectations.
+- Linux kernel capability-aware capture controls in `zpcap` compatibility API:
+  `zpcap_open_live_ex`, `zpcap_detect_features`, `zpcap_kernel_version`.
 
 ### Changed
 - Release workflow defaults now use version `0.2.0`.

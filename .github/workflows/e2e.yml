@@ -86,6 +86,7 @@ jobs:
           ./examples/build/15_findalldevs_lookupdev_cpp 2>&1 | tee -a "$SUMMARY"
           ./examples/build/16_nonblocking_stats_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
           ./examples/build/19_async_native_wait_cpp --offline tests/sample.pcap 18 2>&1 | tee -a "$SUMMARY"
+          ./examples/build/20_linux_kernel_features_c 2>&1 | tee -a "$SUMMARY"
 
       - name: Compile and Link Examples (Windows / MinGW)
         if: runner.os == 'Windows'

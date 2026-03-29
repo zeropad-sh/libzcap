@@ -76,6 +76,7 @@ set(C_EXAMPLES
     12_nonblocking_stats.c
     13_send_packet.c
     18_async_select.c
+    20_linux_kernel_features.c
 )
 
 set(CPP_EXAMPLES

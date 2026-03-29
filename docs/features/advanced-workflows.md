@@ -59,3 +59,15 @@ See: [C99 Live Capture Options](../examples/c99-live-options.md)
   See:
   - [C99 Async Select Loop](../examples/c99-async-select.md)
   - [C++11 Async Select Loop](../examples/cpp11-async-select.md)
+
+## 7) Linux feature-aware runtime selection
+
+Use `zpcap_detect_features()` and `zpcap_open_live_ex()` when you want a single
+binary that adapts automatically:
+
+- detect `TPACKET_V3`, fanout, and busy-poll support before opening
+- request `ring_mmap` first, with controlled fallback to copy mode for older kernels
+- keep one startup path for Linux and no-op on unsupported kernels
+
+See:
+- [C99 Linux Kernel Features](../examples/c99-linux-kernel-features.md)
