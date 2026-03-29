@@ -90,8 +90,9 @@ pub const Handle = struct {
 
     pub fn setNonBlocking(self: *Handle, enabled: bool) Error!void {
         const setnonblock = self.pcap_setnonblock_fn orelse return Error.SymbolNotFound;
-        const errbuf = [_]u8{0} ** 256;
-        const rc = setnonblock(self.pcap_ptr, if (enabled) 1 else 0, @ptrCast(&errbuf));
+        var errbuf = [_]u8{0} ** 256;
+        const err_ptr: [*]u8 = errbuf[0..].ptr;
+        const rc = setnonblock(self.pcap_ptr, if (enabled) 1 else 0, err_ptr);
         if (rc != 0) {
             return Error.PermissionDenied;
         }
