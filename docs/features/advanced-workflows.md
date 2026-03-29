@@ -55,3 +55,7 @@ See: [C99 Live Capture Options](../examples/c99-live-options.md)
 - Current C API is compact and stability-focused.
 - `zpcap_setfilter` is supported for live captures.
 - Offline code currently uses callback-level filtering because live-kernel filter attachment is not available for offline handles in this API surface.
+- Use async read loops by combining `zpcap_get_selectable_fd` + `zpcap_setnonblock` + `zpcap_next_ex`.
+  See:
+  - [C99 Async Select Loop](../examples/c99-async-select.md)
+  - [C++11 Async Select Loop](../examples/cpp11-async-select.md)

@@ -33,47 +33,75 @@ jobs:
       - name: Build libzcap Native Headers & Libraries
         run: zig build -Doptimize=ReleaseFast
 
-      - name: Compile and Link Examples (Linux / macOS)
+      - name: Build examples (Linux / macOS)
         if: runner.os != 'Windows'
         run: |
           mkdir -p bench_results/incoming/${{ matrix.target }}
-          echo "Compiling C/C++ 11 Native Mappings..." > bench_results/incoming/${{ matrix.target }}/summary.txt
+          echo "Compiling C/C++ native mappings with a single command..." > bench_results/incoming/${{ matrix.target }}/summary.txt
 
+          ./build_examples.sh
+
+          ls examples/build >> bench_results/incoming/${{ matrix.target }}/summary.txt
+
+      - name: Run offline and compatibility smoke tests (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p bench_results/incoming/${{ matrix.target }}
+          
           export ZCAP_LIB_PATH="zig-out/lib"
           export LD_LIBRARY_PATH="$ZCAP_LIB_PATH"
           export DYLD_LIBRARY_PATH="$ZCAP_LIB_PATH"
           
-          gcc -o examples/01 examples/01_basic_capture.c -Iinclude -L"$ZCAP_LIB_PATH" -lzcap
-          gcc -o examples/02 examples/02_pcap_dump.c -Iinclude -L"$ZCAP_LIB_PATH" -lzcap
-          g++ -o examples/03 examples/03_offline_read.cpp -Iinclude -L"$ZCAP_LIB_PATH" -lzcap
-          gcc -o examples/04 examples/04_bpf_filter.c -Iinclude -L"$ZCAP_LIB_PATH" -lzcap
-          
-          echo "Executing Offline Reader to heavily validate Memory Boundaries..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
-          ./examples/03 tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
-          
-          echo "Executing Live BPF Compiler API..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
-          ./examples/04 >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
+          echo "Running offline and compatibility examples..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
+
+          ./examples/build/03_offline_read_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/07_offline_split_ipv4_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/09_offline_split_transport_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/08_offline_protocol_stats_c tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/11_findalldevs_lookupdev_c >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/12_nonblocking_stats_c tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/15_findalldevs_lookupdev_cpp >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
+          ./examples/build/16_nonblocking_stats_cpp tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1
 
       - name: Compile and Link Examples (Windows / MinGW)
         if: runner.os == 'Windows'
         run: |
-          mkdir -p bench_results/incoming/${{ matrix.target }}
-          echo "Compiling C/C++ 11 Native Mappings on Windows..." > bench_results/incoming/${{ matrix.target }}/summary.txt
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path bench_results\incoming\${{ matrix.target }} | Out-Null
+          Set-Content -Path bench_results\incoming\${{ matrix.target }}\summary.txt -Value "Compiling C/C++ native mappings..."
           
-          gcc -o examples/01.exe examples/01_basic_capture.c -Iinclude -Lzig-out/lib -lzcap
-          gcc -o examples/02.exe examples/02_pcap_dump.c -Iinclude -Lzig-out/lib -lzcap
-          g++ -o examples/03.exe examples/03_offline_read.cpp -Iinclude -Lzig-out/lib -lzcap
-          gcc -o examples/04.exe examples/04_bpf_filter.c -Iinclude -Lzig-out/lib -lzcap
-          
-          echo "Executing Offline Reader to heavily validate Memory Boundaries..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
-          $ZCAP_DLL = "zig-out/bin/zcap.dll"
+          $ZCAP_LIB_PATH = "zig-out/lib"
+          $LINK_PATHS = @("$ZCAP_LIB_PATH", "zig-out/bin")
+          $LDFLAGS = ($LINK_PATHS | ForEach-Object { "-L""$_""" }) -join " "
+          gcc -std=c99 -o examples\01_basic_capture.exe examples\01_basic_capture.c -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\02_pcap_dump.exe examples\02_pcap_dump.c -Iinclude $LDFLAGS -lzcap
+          g++ -std=c++11 -o examples\03_offline_read.exe examples\03_offline_read.cpp -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\04_bpf_filter.exe examples\04_bpf_filter.c -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\05_next_and_stats.exe examples\05_next_and_stats.c -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\06_filtered_capture_to_file.exe examples\06_filtered_capture_to_file.c -Iinclude $LDFLAGS -lzcap
+          g++ -std=c++11 -o examples\07_offline_split_ipv4.exe examples\07_offline_split_ipv4.cpp -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\08_offline_protocol_stats.exe examples\08_offline_protocol_stats.c -Iinclude $LDFLAGS -lzcap
+          g++ -std=c++11 -o examples\09_offline_split_transport.exe examples\09_offline_split_transport.cpp -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\10_live_capture_options.exe examples\10_live_capture_options.c -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\11_findalldevs_lookupdev.exe examples\11_findalldevs_lookupdev.c -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\12_nonblocking_stats.exe examples\12_nonblocking_stats.c -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\13_send_packet.exe examples\13_send_packet.c -Iinclude $LDFLAGS -lzcap
+          g++ -std=c++11 -o examples\15_findalldevs_lookupdev.exe examples\15_findalldevs_lookupdev.cpp -Iinclude $LDFLAGS -lzcap
+          g++ -std=c++11 -o examples\16_nonblocking_stats.exe examples\16_nonblocking_stats.cpp -Iinclude $LDFLAGS -lzcap
+          g++ -std=c++11 -o examples\17_send_packet.exe examples\17_send_packet.cpp -Iinclude $LDFLAGS -lzcap
+          gcc -std=c99 -o examples\18_async_select.exe examples\18_async_select.c -Iinclude $LDFLAGS -lzcap
+          g++ -std=c++11 -o examples\18_async_select_cpp.exe examples\18_async_select.cpp -Iinclude $LDFLAGS -lzcap
+
+          echo "Running offline/native compatibility smoke checks..." >> bench_results\incoming\${{ matrix.target }}\summary.txt
+
+          $ZCAP_DLL = "zig-out\\bin\\zcap.dll"
           if (-not (Test-Path $ZCAP_DLL)) {
-            if (Test-Path "zig-out/lib/zcap.dll") {
-              $ZCAP_DLL = "zig-out/lib/zcap.dll"
-            } elseif (Test-Path "zig-out/bin/libzcap.dll") {
-              $ZCAP_DLL = "zig-out/bin/libzcap.dll"
-            } elseif (Test-Path "zig-out/lib/libzcap.dll") {
-              $ZCAP_DLL = "zig-out/lib/libzcap.dll"
+            if (Test-Path "zig-out\\lib\\zcap.dll") {
+              $ZCAP_DLL = "zig-out\\lib\\zcap.dll"
+            } elseif (Test-Path "zig-out\\bin\\libzcap.dll") {
+              $ZCAP_DLL = "zig-out\\bin\\libzcap.dll"
+            } elseif (Test-Path "zig-out\\lib\\libzcap.dll") {
+              $ZCAP_DLL = "zig-out\\lib\\libzcap.dll"
             } else {
               Get-ChildItem -Recurse -Path zig-out | Select-Object -ExpandProperty FullName
               throw "Could not locate zcap.dll in zig-out."
@@ -81,7 +109,15 @@ jobs:
           }
           Copy-Item -Path $ZCAP_DLL -Destination . -Force
           $env:PATH = "$((Get-Location).Path);$env:PATH"
-          ./examples/03.exe tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
+
+          .\examples\03_offline_read.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\07_offline_split_ipv4.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\09_offline_split_transport.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\08_offline_protocol_stats.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\11_findalldevs_lookupdev.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\12_nonblocking_stats.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\15_findalldevs_lookupdev.exe >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
+          .\examples\16_nonblocking_stats.exe tests\sample.pcap >> bench_results\incoming\${{ matrix.target }}\summary.txt 2>&1
 
       - name: Upload Telemetry Logs
         uses: actions/upload-artifact@v4

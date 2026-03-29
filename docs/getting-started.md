@@ -4,7 +4,7 @@
 
 Pick one path:
 
-- **From source (requires Zig `0.15.2+`)**
+- **From source (requires Zig `0.15.2` or newer)**
   - Build your own binaries with `zig build`:
     ```bash
     git clone https://github.com/seekaddo/libzcap.git
@@ -62,7 +62,14 @@ export LD_LIBRARY_PATH=zig-out/lib
 ./your_binary
 ```
 
-## 4. API naming and migration flow
+## 4. API choice: migration or native usage
+
+Use `zpcap.h` when you are migrating existing `libpcap` code.
+Use `libzcap.h` if you are building against the modern native API.
+
+The examples in this section use `zpcap.h` for compatibility parity.
+
+## 5. API naming and migration flow
 
 `libzcap` exposes `zpcap_*` APIs as its C interface.
 
@@ -71,12 +78,12 @@ export LD_LIBRARY_PATH=zig-out/lib
 - Filters: `zpcap_compile`, `zpcap_setfilter`, `zpcap_freecode`
 - Dumping: `zpcap_dump_open`, `zpcap_dump`, `zpcap_dump_close`
 
-## 5. Permissions
+## 6. Permissions
 
 - Linux/macOS/BSD capture usually needs elevated permissions for raw device access.
 - Windows requires a working Npcap installation and usually administrator permissions.
 
-## 6. Choose a sample
+## 7. Choose a sample
 
 - C99 full samples:
   - [c99-live-capture.md](./examples/c99-live-capture.md)
@@ -86,10 +93,18 @@ export LD_LIBRARY_PATH=zig-out/lib
   - [c99-filtered-file-capture.md](./examples/c99-filtered-file-capture.md)
   - [c99-offline-protocol-stats.md](./examples/c99-offline-protocol-stats.md)
   - [c99-live-options.md](./examples/c99-live-options.md)
+  - [c99-find-devices.md](./examples/c99-find-devices.md)
+  - [c99-nonblocking-stats.md](./examples/c99-nonblocking-stats.md)
+  - [c99-send-packet.md](./examples/c99-send-packet.md)
+  - [c99-async-select.md](./examples/c99-async-select.md)
 - C++11 full sample:
   - [cpp11-offline-read.md](./examples/cpp11-offline-read.md)
   - [cpp11-offline-split.md](./examples/cpp11-offline-split.md)
   - [cpp11-offline-transport-split.md](./examples/cpp11-offline-transport-split.md)
+  - [cpp11-find-devices.md](./examples/cpp11-find-devices.md)
+  - [cpp11-nonblocking-stats.md](./examples/cpp11-nonblocking-stats.md)
+  - [cpp11-send-packet.md](./examples/cpp11-send-packet.md)
+  - [cpp11-async-select.md](./examples/cpp11-async-select.md)
 
 Advanced workflow:
 - [Advanced Workflows](./features/advanced-workflows.md)

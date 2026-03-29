@@ -57,6 +57,26 @@ pub const Handle = struct {
         if (rc != 0) return Error.InvalidFilter;
     }
 
+    pub fn send(self: *Handle, data: []const u8) Error!void {
+        var sent: usize = 0;
+        while (sent < data.len) {
+            const n = try os.write(self.fd, data[sent..]);
+            if (n == 0) {
+                return Error.SocketNotConnected;
+            }
+            sent += n;
+        }
+    }
+
+    pub fn setNonBlocking(self: *Handle, enabled: bool) Error!void {
+        const current = os.fcntl(self.fd, os.F.GETFL, 0) catch return Error.PermissionDenied;
+        const nonblock: usize = comptime 1 << @intCast(@bitOffsetOf(os.O, "NONBLOCK"));
+        const next_flags = if (enabled) current | nonblock else current & ~nonblock;
+        if (next_flags != current) {
+            _ = os.fcntl(self.fd, os.F.SETFL, next_flags) catch return Error.PermissionDenied;
+        }
+    }
+
     pub fn next(self: *Handle) Error!PacketView {
         if (self.buf_pos >= self.buf_len) {
             const n = os.read(self.fd, self.buffer) catch |err| {
@@ -103,5 +123,9 @@ pub const Handle = struct {
     pub fn deinit(self: *Handle) void {
         os.close(self.fd);
         std.heap.page_allocator.free(self.buffer);
+    }
+
+    pub fn getSelectableFd(self: *Handle) c_int {
+        return self.fd;
     }
 };

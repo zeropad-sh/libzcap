@@ -17,7 +17,7 @@ void packet_handler(uint8_t *user, const zpcap_pkthdr *h, const uint8_t *) {
 
 int main(int argc, char **argv) {
     char errbuf[ZPCAP_ERRBUF_SIZE];
-    const char *path = (argc > 1) ? argv[1] : "output_c_test.pcap";
+    const char *path = (argc > 1) ? argv[1] : "tests/sample.pcap";
 
     zpcap_t *handle = zpcap_open_offline(path, errbuf);
     if (handle == nullptr) {
@@ -36,11 +36,11 @@ int main(int argc, char **argv) {
 ```bash
 zig build
 g++ -std=c++11 -o docs/examples/cpp11-offline-read examples/03_offline_read.cpp -Iinclude -Lzig-out/lib -lzcap
-./docs/examples/cpp11-offline-read output_c_test.pcap
+./docs/examples/cpp11-offline-read tests/sample.pcap
 ```
 
 On Linux/macOS:
 
 ```bash
-LD_LIBRARY_PATH=zig-out/lib ./docs/examples/cpp11-offline-read output_c_test.pcap
+LD_LIBRARY_PATH=zig-out/lib ./docs/examples/cpp11-offline-read tests/sample.pcap
 ```

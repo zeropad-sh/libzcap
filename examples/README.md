@@ -1,6 +1,6 @@
 # libzcap Advanced Examples Collection
 
-The explicit goal of `libzcap`'s compatibility architecture is mapping internal Zig capabilities strictly to external cross-compiled API definitions effortlessly. Every example included in this directory can be strictly compiled by `gcc` or `g++` against standard `libc` and `libzcap.so`.
+The explicit goal of `libzcap`'s compatibility architecture is mapping internal Zig capabilities strictly to external cross-compiled API definitions effortlessly. Every example included in this directory can be compiled against standard `libc` and `libzcap`.
 
 These standalone examples demonstrate 1-to-1 operational conformity with historical drop-ins utilizing `libpcap`.
 
@@ -15,9 +15,30 @@ These standalone examples demonstrate 1-to-1 operational conformity with histori
 - **`08_offline_protocol_stats.c`**: Offline Ethernet frame type counter with zero-copy callback-based stats.
 - **`09_offline_split_transport.cpp`**: Offline dual-output splitter for TCP vs UDP packets.
 - **`10_live_capture_options.c`**: Live capture with configurable device/filter/count/dump target.
+- **`11_findalldevs_lookupdev.c`**: Enumerate local capture devices and resolve the default interface.
+- **`12_nonblocking_stats.c`**: Non-blocking mode, `zpcap_next_ex`, and stats with offline input.
+- **`13_send_packet.c`**: Packet injection using `zpcap_sendpacket` and `zpcap_send`.
+- **`15_findalldevs_lookupdev.cpp`**: C++ version of interface enumeration and default selection.
+- **`16_nonblocking_stats.cpp`**: C++ non-blocking loop and stats with `zpcap_next_ex`.
+- **`17_send_packet.cpp`**: C++ packet injection with `zpcap_sendpacket` and `zpcap_send`.
+- **`18_async_select.c`**: C event-loop capture using `select()` and `zpcap_next_ex`.
+- **`18_async_select.cpp`**: C++ event-loop capture using `select()` and `zpcap_next_ex`.
 
 ### Compiling and Testing
-You must have successfully generated `libzcap` locally (via `zig build`) before testing. Execute tests seamlessly from the root output structure mapping headers efficiently:
+You must have successfully generated `libzcap` locally (via `zig build`) before testing.
+
+Optional: use one CMake command to build all examples at once:
+```bash
+cmake -S examples -B examples/build -DLIBZCAP_ROOT="$(pwd)" -DLIBZCAP_BUILD_DIR="$(pwd)/zig-out/lib"
+cmake --build examples/build -j
+```
+
+From repository root, you can run a single helper script:
+```bash
+./build_examples.sh
+```
+
+If you do not want to use CMake, you can still compile a single file with `gcc`/`g++`:
 ```bash
 # Basic C Linking
 gcc -o examples/basic examples/01_basic_capture.c -Iinclude -Lzig-out/lib -lzcap

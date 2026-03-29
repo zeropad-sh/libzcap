@@ -38,7 +38,7 @@ static void packet_handler(uint8_t *user, const zpcap_pkthdr *hdr, const uint8_t
 
 int main(int argc, char **argv) {
     char errbuf[ZPCAP_ERRBUF_SIZE];
-    const char *input = (argc > 1) ? argv[1] : "output_c_test.pcap";
+    const char *input = (argc > 1) ? argv[1] : "tests/sample.pcap";
 
     zpcap_t *handle = zpcap_open_offline(input, errbuf);
     if (handle == nullptr) {
@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
 ```bash
 zig build
 g++ -std=c++11 -o docs/examples/cpp11-offline-split examples/07_offline_split_ipv4.cpp -Iinclude -Lzig-out/lib -lzcap
-LD_LIBRARY_PATH=zig-out/lib ./docs/examples/cpp11-offline-split examples/input.pcap
+LD_LIBRARY_PATH=zig-out/lib ./docs/examples/cpp11-offline-split tests/sample.pcap
 ```
 
 ## What this shows

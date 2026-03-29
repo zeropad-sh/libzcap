@@ -19,7 +19,7 @@ pub const Handle = struct {
 
     pub fn open(options: CaptureOptions) Error!Handle {
         const protocol = std.mem.nativeToBig(u16, 0x0003); // ETH_P_ALL
-        const fd = os.socket(os.AF.PACKET, os.SOCK.RAW, protocol) catch |err| return err;
+        const fd = openRawSocket(protocol) catch |err| return err;
         errdefer os.close(fd);
 
         var h = Handle{
@@ -65,6 +65,28 @@ pub const Handle = struct {
         return h;
     }
 
+    fn openRawSocket(protocol: u16) Error!os.fd_t {
+        const raw_rc = std.posix.system.socket(os.AF.PACKET, os.SOCK.RAW, @intCast(protocol));
+        const rc: isize = @bitCast(raw_rc);
+        if (rc >= 0) {
+            return @intCast(rc);
+        }
+
+        const err = std.posix.errno(rc);
+        return switch (err) {
+            .SUCCESS => unreachable,
+            .PERM, .ACCES => Error.PermissionDenied,
+            .AFNOSUPPORT => Error.ProtocolNotSupported,
+            .PROTOTYPE => Error.ProtocolNotSupported,
+            .PROTONOSUPPORT => Error.ProtocolNotSupported,
+            .NOBUFS, .NOMEM => Error.SocketCreationFailed,
+            .NFILE, .MFILE => Error.SocketCreationFailed,
+            .INVAL => Error.SocketCreationFailed,
+            .ADDRINUSE, .ADDRNOTAVAIL => Error.InvalidArgument,
+            else => Error.SocketCreationFailed,
+        };
+    }
+
     fn getIfIndex(name: []const u8) Error!u32 {
         var path_buf: [64]u8 = undefined;
         const path = std.fmt.bufPrint(&path_buf, "/sys/class/net/{s}/ifindex", .{name}) catch return Error.NoSuchDevice;
@@ -88,6 +110,26 @@ pub const Handle = struct {
         };
         const SO_ATTACH_FILTER = 26;
         std.posix.setsockopt(self.fd, std.posix.SOL.SOCKET, SO_ATTACH_FILTER, std.mem.asBytes(&fprog)) catch return Error.InvalidFilter;
+    }
+
+    pub fn send(self: *Handle, data: []const u8) Error!void {
+        var sent: usize = 0;
+        while (sent < data.len) {
+            const n = try os.write(self.fd, data[sent..]);
+            if (n == 0) {
+                return Error.SocketNotConnected;
+            }
+            sent += n;
+        }
+    }
+
+    pub fn setNonBlocking(self: *Handle, enabled: bool) Error!void {
+        const current = os.fcntl(self.fd, os.F.GETFL, 0) catch return Error.PermissionDenied;
+        const nonblock: usize = comptime 1 << @intCast(@bitOffsetOf(os.O, "NONBLOCK"));
+        const next_flags = if (enabled) current | nonblock else current & ~nonblock;
+        if (next_flags != current) {
+            _ = os.fcntl(self.fd, os.F.SETFL, next_flags) catch return Error.PermissionDenied;
+        }
     }
 
     pub fn next(self: *Handle) Error!PacketView {
@@ -136,5 +178,9 @@ pub const Handle = struct {
         if (self.ring) |r| {
             r.deinit();
         }
+    }
+
+    pub fn getSelectableFd(self: *Handle) c_int {
+        return self.fd;
     }
 };

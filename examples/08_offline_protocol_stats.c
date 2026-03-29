@@ -53,7 +53,7 @@ static void packet_handler(uint8_t *user, const zpcap_pkthdr *hdr, const uint8_t
 
 int main(int argc, char **argv) {
     char errbuf[ZPCAP_ERRBUF_SIZE];
-    const char *path = (argc > 1) ? argv[1] : "output_c_test.pcap";
+    const char *path = (argc > 1) ? argv[1] : "tests/sample.pcap";
 
     zpcap_t *handle = zpcap_open_offline(path, errbuf);
     if (handle == NULL) {

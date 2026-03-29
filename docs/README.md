@@ -18,6 +18,14 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
 - [C99 Offline Protocol Stats](./examples/c99-offline-protocol-stats.md): parse Ethernet frames from offline capture and count types.
 - [C99 Live Capture Options](./examples/c99-live-options.md): runtime args for device/filter/count/output and callback context.
 - [C++11 TCP/UDP Split](./examples/cpp11-offline-transport-split.md): one pass, two output files by transport protocol.
+- [C99 Device Discovery](./examples/c99-find-devices.md): list capture interfaces and get the default device.
+- [C99 Non-Blocking + Stats](./examples/c99-nonblocking-stats.md): modern async style capture loop and stats.
+- [C99 Packet Injection](./examples/c99-send-packet.md): `zpcap_sendpacket` and `zpcap_send`.
+- [C99 Async Select Loop](./examples/c99-async-select.md): event-driven capture with `select()` and `zpcap_get_selectable_fd`.
+- [C++11 Device Discovery](./examples/cpp11-find-devices.md): C++ version of interface listing and default lookup.
+- [C++11 Non-Blocking + Stats](./examples/cpp11-nonblocking-stats.md): `setnonblock`, `next_ex`, and stats in C++.
+- [C++11 Packet Injection](./examples/cpp11-send-packet.md): equivalent C++ sample for send APIs.
+- [C++11 Async Select Loop](./examples/cpp11-async-select.md): event-driven capture with `select()` and `zpcap_get_selectable_fd`.
 - [Zero-Copy Architecture](./features/zero-copy.md): how capture buffers avoid copies.
 - [Cross-Platform Backends](./features/platform-backends.md): Linux/macOS/BSD/Windows behavior and prerequisites.
 - [`zpcap` Compatibility Layer](./features/compatibility-layer.md): API mapping and migration path.
@@ -34,7 +42,15 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
   - [Filtered Capture + Dump](./examples/c99-filtered-file-capture.md)
   - [Offline Protocol Stats](./examples/c99-offline-protocol-stats.md)
   - [Live Capture Options](./examples/c99-live-options.md)
+  - [Find Devices + Default](./examples/c99-find-devices.md)
+  - [Non-Blocking + Stats](./examples/c99-nonblocking-stats.md)
+  - [Packet Injection](./examples/c99-send-packet.md)
+  - [Async Select Loop](./examples/c99-async-select.md)
 - If you need a full sample in C++11, open:
   - [Offline PCAP Reader](./examples/cpp11-offline-read.md)
   - [Offline IPv4 Splitter](./examples/cpp11-offline-split.md)
   - [Offline TCP/UDP Split](./examples/cpp11-offline-transport-split.md)
+  - [Find Devices + Default](./examples/cpp11-find-devices.md)
+  - [Non-Blocking + Stats](./examples/cpp11-nonblocking-stats.md)
+  - [Packet Injection](./examples/cpp11-send-packet.md)
+  - [Async Select Loop](./examples/cpp11-async-select.md)

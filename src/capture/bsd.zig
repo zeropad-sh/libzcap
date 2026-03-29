@@ -26,7 +26,7 @@ pub const Handle = struct {
                 if (err == error.FileNotFound) break;
             }
         }
-        
+
         const valid_fd = fd orelse return Error.PermissionDenied;
         errdefer os.close(valid_fd);
 
@@ -60,14 +60,14 @@ pub const Handle = struct {
 
         const data_start = self.buf_pos + hdrlen;
         const data_end = data_start + caplen;
-        
+
         if (data_end > self.buf_len) {
             self.buf_len = 0;
             return Error.Timeout;
         }
 
         const data = self.buffer[data_start..data_end];
-        
+
         const total_consumed = hdrlen + caplen;
         const padded_consumed = (total_consumed + 3) & ~@as(u32, 3);
         self.buf_pos += padded_consumed;
@@ -82,8 +82,32 @@ pub const Handle = struct {
         };
     }
 
+    pub fn send(self: *Handle, data: []const u8) Error!void {
+        var sent: usize = 0;
+        while (sent < data.len) {
+            const n = try os.write(self.fd, data[sent..]);
+            if (n == 0) {
+                return Error.SocketNotConnected;
+            }
+            sent += n;
+        }
+    }
+
+    pub fn setNonBlocking(self: *Handle, enabled: bool) Error!void {
+        const current = os.fcntl(self.fd, os.F.GETFL, 0) catch return Error.PermissionDenied;
+        const nonblock: usize = comptime 1 << @intCast(@bitOffsetOf(os.O, "NONBLOCK"));
+        const next_flags = if (enabled) current | nonblock else current & ~nonblock;
+        if (next_flags != current) {
+            _ = os.fcntl(self.fd, os.F.SETFL, next_flags) catch return Error.PermissionDenied;
+        }
+    }
+
     pub fn deinit(self: *Handle) void {
         os.close(self.fd);
         std.heap.page_allocator.free(self.buffer);
+    }
+
+    pub fn getSelectableFd(self: *Handle) c_int {
+        return self.fd;
     }
 };

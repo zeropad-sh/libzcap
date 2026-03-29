@@ -23,6 +23,8 @@ pub const Handle = struct {
     pcap_close_fn: *const fn (*pcap_t) callconv(.c) void,
     pcap_geterr_fn: *const fn (*pcap_t) callconv(.c) [*:0]const u8,
     pcap_setfilter_fn: *const fn (*pcap_t, *const anyopaque) callconv(.c) c_int,
+    pcap_sendpacket_fn: *const fn (*pcap_t, [*]const u8, c_int) callconv(.c) c_int,
+    pcap_setnonblock_fn: ?*const fn (*pcap_t, c_int, [*]u8) callconv(.c) c_int,
 
     pub fn open(options: CaptureOptions) Error!Handle {
         var lib = std.DynLib.open("wpcap.dll") catch return Error.LibraryNotFound;
@@ -33,6 +35,8 @@ pub const Handle = struct {
         const pcap_close_fn = lib.lookup(*const fn (*pcap_t) callconv(.c) void, "pcap_close") orelse return Error.SymbolNotFound;
         const pcap_geterr_fn = lib.lookup(*const fn (*pcap_t) callconv(.c) [*:0]const u8, "pcap_geterr") orelse return Error.SymbolNotFound;
         const pcap_setfilter_fn = lib.lookup(*const fn (*pcap_t, *const anyopaque) callconv(.c) c_int, "pcap_setfilter") orelse return Error.SymbolNotFound;
+        const pcap_sendpacket_fn = lib.lookup(*const fn (*pcap_t, [*]const u8, c_int) callconv(.c) c_int, "pcap_sendpacket") orelse return Error.SymbolNotFound;
+        const pcap_setnonblock_fn = lib.lookup(*const fn (*pcap_t, c_int, [*]u8) callconv(.c) c_int, "pcap_setnonblock");
 
         var errbuf: [256]u8 = undefined;
         var dev_path: [256]u8 = undefined;
@@ -57,6 +61,8 @@ pub const Handle = struct {
             .pcap_close_fn = pcap_close_fn,
             .pcap_geterr_fn = pcap_geterr_fn,
             .pcap_setfilter_fn = pcap_setfilter_fn,
+            .pcap_sendpacket_fn = pcap_sendpacket_fn,
+            .pcap_setnonblock_fn = pcap_setnonblock_fn,
         };
     }
 
@@ -71,6 +77,24 @@ pub const Handle = struct {
         };
         const rc = self.pcap_setfilter_fn(self.pcap_ptr, &fprog);
         if (rc != 0) return Error.InvalidFilter;
+    }
+
+    pub fn send(self: *Handle, data: []const u8) Error!void {
+        if (data.len > std.math.maxInt(c_int)) return Error.InvalidArgument;
+
+        const rc = self.pcap_sendpacket_fn(self.pcap_ptr, data.ptr, @intCast(data.len));
+        if (rc != 0) {
+            return Error.DeviceNotUp;
+        }
+    }
+
+    pub fn setNonBlocking(self: *Handle, enabled: bool) Error!void {
+        const setnonblock = self.pcap_setnonblock_fn orelse return Error.SymbolNotFound;
+        const errbuf = [_]u8{0} ** 256;
+        const rc = setnonblock(self.pcap_ptr, if (enabled) 1 else 0, @ptrCast(&errbuf));
+        if (rc != 0) {
+            return Error.PermissionDenied;
+        }
     }
 
     pub fn next(self: *Handle) Error!PacketView {
@@ -97,5 +121,10 @@ pub const Handle = struct {
     pub fn deinit(self: *Handle) void {
         self.pcap_close_fn(self.pcap_ptr);
         self.lib.close();
+    }
+
+    pub fn getSelectableFd(self: *Handle) c_int {
+        _ = self;
+        return -1;
     }
 };
