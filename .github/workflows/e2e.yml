@@ -45,6 +45,21 @@ jobs:
 
           ls examples/build 2>&1 | tee -a "$SUMMARY"
 
+      - name: Validate Linux kernel feature fallback path
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          SUMMARY="bench_results/incoming/${{ matrix.target }}/summary.txt"
+          mkdir -p bench_results/incoming/${{ matrix.target }}
+
+          if [ ! -f "$SUMMARY" ]; then
+            echo "Running Linux feature detection fallback validation tests..." | tee "$SUMMARY"
+          else
+            echo "Running Linux feature detection fallback validation tests..." | tee -a "$SUMMARY"
+          fi
+
+          zig build test -Doptimize=ReleaseFast 2>&1 | tee -a "$SUMMARY"
+
       - name: Run offline and compatibility smoke tests (Linux / macOS)
         if: runner.os != 'Windows'
         run: |

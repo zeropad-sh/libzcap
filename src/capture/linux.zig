@@ -4,6 +4,7 @@ const ring = @import("../ring.zig");
 const handle_types = @import("handle.zig");
 const kernel = @import("kernel.zig");
 const CaptureOptions = handle_types.CaptureOptions;
+const BufferMode = handle_types.BufferMode;
 const PacketView = handle_types.PacketView;
 const Error = handle_types.Error;
 const cBPF = struct {
@@ -31,17 +32,14 @@ pub const Handle = struct {
             .ring = null,
         };
 
-        if (options.buffer_mode == .ring_mmap) {
-            if (kernel_features & @intFromEnum(kernel.KernelFeatures.ring_v3) != 0) {
-                h.ring = ring.Ring.init(fd, options.ring) catch blk: {
-                    if (!options.fallback_to_copy) return Error.RingSetupFailed;
-                    h.options.buffer_mode = .copy;
-                    break :blk null;
-                };
-            } else if (options.fallback_to_copy) {
+        h.options.buffer_mode = try Handle.resolveBufferMode(kernel_features, options.buffer_mode, options.fallback_to_copy);
+
+        if (h.options.buffer_mode == .ring_mmap) {
+            if (ring.Ring.init(fd, options.ring)) |r| {
+                h.ring = r;
+            } else |_| {
+                if (!options.fallback_to_copy) return Error.RingSetupFailed;
                 h.options.buffer_mode = .copy;
-            } else {
-                return Error.RingSetupFailed;
             }
         }
 
@@ -117,6 +115,21 @@ pub const Handle = struct {
                 return Error.PermissionDenied;
             };
         }
+    }
+
+    fn resolveBufferMode(
+        kernel_features: u32,
+        requested: BufferMode,
+        fallback_to_copy: bool,
+    ) Error!BufferMode {
+        if (requested != .ring_mmap) return .copy;
+
+        if (kernel_features & @intFromEnum(kernel.KernelFeatures.ring_v3) == 0) {
+            if (!fallback_to_copy) return Error.RingSetupFailed;
+            return .copy;
+        }
+
+        return .ring_mmap;
     }
 
     fn openRawSocket(protocol: u16) Error!os.fd_t {
@@ -238,3 +251,14 @@ pub const Handle = struct {
         return self.fd;
     }
 };
+
+test "linux resolveBufferMode falls back to copy when ring mmap unsupported" {
+    const features_legacy: u32 = @intFromEnum(kernel.KernelFeatures.basic);
+    const features_modern: u32 = features_legacy | @intFromEnum(kernel.KernelFeatures.ring_v3);
+
+    try std.testing.expectEqual(BufferMode.copy, try Handle.resolveBufferMode(features_legacy, .ring_mmap, true));
+    try std.testing.expectError(Error.RingSetupFailed, Handle.resolveBufferMode(features_legacy, .ring_mmap, false));
+    try std.testing.expectEqual(BufferMode.ring_mmap, try Handle.resolveBufferMode(features_modern, .ring_mmap, true));
+    try std.testing.expectEqual(BufferMode.ring_mmap, try Handle.resolveBufferMode(features_modern, .ring_mmap, false));
+    try std.testing.expectEqual(BufferMode.copy, try Handle.resolveBufferMode(features_legacy, .copy, false));
+}

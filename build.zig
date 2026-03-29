@@ -46,5 +46,9 @@ pub fn build(b: *std.Build) void {
         .root_module = mod,
     });
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&b.addRunArtifact(tests).step);
+    const run_tests = b.addRunArtifact(tests);
+    if (b.args) |args| {
+        run_tests.addArgs(args);
+    }
+    test_step.dependOn(&run_tests.step);
 }
