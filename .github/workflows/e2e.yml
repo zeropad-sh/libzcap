@@ -38,17 +38,21 @@ jobs:
         run: |
           mkdir -p bench_results/incoming/${{ matrix.target }}
           echo "Compiling C/C++ 11 Native Mappings..." > bench_results/incoming/${{ matrix.target }}/summary.txt
+
+          export ZCAP_LIB_PATH="zig-out/lib"
+          export LD_LIBRARY_PATH="$ZCAP_LIB_PATH"
+          export DYLD_LIBRARY_PATH="$ZCAP_LIB_PATH"
           
-          gcc -o examples/01 examples/01_basic_capture.c -Iinclude -Lzig-out/lib -lzcap
-          gcc -o examples/02 examples/02_pcap_dump.c -Iinclude -Lzig-out/lib -lzcap
-          g++ -o examples/03 examples/03_offline_read.cpp -Iinclude -Lzig-out/lib -lzcap
-          gcc -o examples/04 examples/04_bpf_filter.c -Iinclude -Lzig-out/lib -lzcap
+          gcc -o examples/01 examples/01_basic_capture.c -Iinclude -L"$ZCAP_LIB_PATH" -lzcap
+          gcc -o examples/02 examples/02_pcap_dump.c -Iinclude -L"$ZCAP_LIB_PATH" -lzcap
+          g++ -o examples/03 examples/03_offline_read.cpp -Iinclude -L"$ZCAP_LIB_PATH" -lzcap
+          gcc -o examples/04 examples/04_bpf_filter.c -Iinclude -L"$ZCAP_LIB_PATH" -lzcap
           
           echo "Executing Offline Reader to heavily validate Memory Boundaries..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
-          LD_LIBRARY_PATH=zig-out/lib ./examples/03 tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
+          ./examples/03 tests/sample.pcap >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
           
           echo "Executing Live BPF Compiler API..." >> bench_results/incoming/${{ matrix.target }}/summary.txt
-          LD_LIBRARY_PATH=zig-out/lib ./examples/04 >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
+          ./examples/04 >> bench_results/incoming/${{ matrix.target }}/summary.txt 2>&1 || true
 
       - name: Compile and Link Examples (Windows / MinGW)
         if: runner.os == 'Windows'
