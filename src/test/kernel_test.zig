@@ -46,3 +46,19 @@ test "kernel version supportsAtLeast" {
     try testing.expect(!v.supportsAtLeast(6, 0));
     try testing.expect(!v.supportsAtLeast(5, 20));
 }
+
+test "kernel version supports fanout from 2.6.37" {
+    const v1 = .{ .major = 2, .minor = 6, .patch = 36 };
+    try testing.expect(!v1.supports(.fanout));
+
+    const v2 = .{ .major = 2, .minor = 6, .patch = 37 };
+    try testing.expect(v2.supports(.fanout));
+}
+
+test "kernel version supports busy poll from 3.11" {
+    const v1 = .{ .major = 3, .minor = 10, .patch = 0 };
+    try testing.expect(!v1.supports(.busy_poll));
+
+    const v2 = .{ .major = 3, .minor = 11, .patch = 0 };
+    try testing.expect(v2.supports(.busy_poll));
+}

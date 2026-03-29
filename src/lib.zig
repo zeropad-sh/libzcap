@@ -1,5 +1,7 @@
 pub const Handle = @import("capture/handle.zig").Handle;
 pub const CaptureOptions = @import("capture/handle.zig").CaptureOptions;
+pub const FanoutMode = @import("capture/handle.zig").FanoutMode;
+pub const FanoutConfig = @import("capture/handle.zig").FanoutConfig;
 pub const PacketView = @import("capture/handle.zig").PacketView;
 pub const BufferMode = @import("capture/handle.zig").BufferMode;
 pub const Error = @import("capture/handle.zig").Error;

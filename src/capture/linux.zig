@@ -2,6 +2,7 @@ const std = @import("std");
 const os = std.posix;
 const ring = @import("../ring.zig");
 const handle_types = @import("handle.zig");
+const kernel = @import("kernel.zig");
 const CaptureOptions = handle_types.CaptureOptions;
 const PacketView = handle_types.PacketView;
 const Error = handle_types.Error;
@@ -21,6 +22,7 @@ pub const Handle = struct {
         const protocol = std.mem.nativeToBig(u16, 0x0003); // ETH_P_ALL
         const fd = openRawSocket(protocol) catch |err| return err;
         errdefer os.close(fd);
+        const kernel_features = kernel.KernelVersion.detect().detectFeatures();
 
         var h = Handle{
             .fd = fd,
@@ -30,8 +32,20 @@ pub const Handle = struct {
         };
 
         if (options.buffer_mode == .ring_mmap) {
-            h.ring = ring.Ring.init(fd, .{ .timeout_ms = options.timeout_ms }) catch return Error.RingSetupFailed;
-        } else {
+            if (kernel_features & @intFromEnum(kernel.KernelFeatures.ring_v3) != 0) {
+                h.ring = ring.Ring.init(fd, options.ring) catch blk: {
+                    if (!options.fallback_to_copy) return Error.RingSetupFailed;
+                    h.options.buffer_mode = .copy;
+                    break :blk null;
+                };
+            } else if (options.fallback_to_copy) {
+                h.options.buffer_mode = .copy;
+            } else {
+                return Error.RingSetupFailed;
+            }
+        }
+
+        if (h.options.buffer_mode != .ring_mmap) {
             h.buffer = try std.heap.page_allocator.alloc(u8, options.snaplen);
             const tv = std.os.linux.timeval{
                 .sec = @intCast(options.timeout_ms / 1000),
@@ -39,6 +53,8 @@ pub const Handle = struct {
             };
             os.setsockopt(fd, os.SOL.SOCKET, os.SO.RCVTIMEO, std.mem.asBytes(&tv)) catch {};
         }
+
+        try configureModernFeatures(fd, options, kernel_features);
 
         const ifindex = getIfIndex(options.device) catch null;
         if (ifindex) |idx| {
@@ -63,6 +79,44 @@ pub const Handle = struct {
         }
 
         return h;
+    }
+
+    fn configureModernFeatures(
+        fd: os.fd_t,
+        options: CaptureOptions,
+        kernel_features: u32,
+    ) Error!void {
+        if (options.fanout.mode != .none) {
+            if (kernel_features & @intFromEnum(kernel.KernelFeatures.fanout) == 0) {
+                return Error.InvalidArgument;
+            }
+
+            const fanout_mode = switch (options.fanout.mode) {
+                .none => 0,
+                .hash => @as(u32, 0),
+                .lb => 1,
+                .cpu => 2,
+                .random => 3,
+                .rollover => 4,
+                .cbpf => 5,
+                .ebpf => 6,
+            };
+            const fanout_val: u32 = @as(u32, options.fanout.group_id) << 16 | fanout_mode;
+            const PACKET_FANOUT = 18;
+            os.setsockopt(fd, os.SOL.PACKET, PACKET_FANOUT, std.mem.asBytes(&fanout_val)) catch {
+                return Error.InvalidArgument;
+            };
+        }
+
+        if (options.busy_poll_usec != 0) {
+            if (kernel_features & @intFromEnum(kernel.KernelFeatures.busy_poll) == 0) {
+                return Error.InvalidArgument;
+            }
+            const SO_BUSY_POLL = 46;
+            os.setsockopt(fd, os.SOL.SOCKET, SO_BUSY_POLL, std.mem.asBytes(&options.busy_poll_usec)) catch {
+                return Error.PermissionDenied;
+            };
+        }
     }
 
     fn openRawSocket(protocol: u16) Error!os.fd_t {

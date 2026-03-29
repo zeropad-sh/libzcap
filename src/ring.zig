@@ -1,6 +1,7 @@
 const std = @import("std");
 const os = std.posix;
 const linux = std.os.linux;
+const math = std.math;
 
 pub const Error = error{
     RingSetupFailed,
@@ -29,12 +30,36 @@ pub const Ring = struct {
 
     pub fn init(fd: os.fd_t, opts: RingOptions) Error!*Ring {
         var options = opts;
-        if (options.frame_count == 0) {
-            options.frame_count = (options.block_size * options.block_count) / options.frame_size;
+        if (options.block_size == 0 or options.block_count == 0) {
+            return Error.InvalidBlockSize;
         }
 
-        // Ensure power of 2 alignment for block_size
-        if (options.block_size < 4096 or (options.block_size & (options.block_size - 1)) != 0) {
+        if (options.frame_size == 0) {
+            return Error.InvalidBlockSize;
+        }
+
+        if (!math.isPowerOfTwo(options.block_size) or options.block_size < 4096) {
+            return Error.InvalidBlockSize;
+        }
+        if (!math.isPowerOfTwo(options.frame_size) or options.frame_size > options.block_size) {
+            return Error.InvalidBlockSize;
+        }
+
+        if (options.block_size % options.frame_size != 0) {
+            return Error.InvalidBlockSize;
+        }
+
+        const capacity_frames_u64 = @as(u64, options.block_size) * options.block_count;
+        if (capacity_frames_u64 > std.math.maxInt(u32)) {
+            return Error.InvalidBlockSize;
+        }
+
+        if (options.frame_count == 0) {
+            options.frame_count = @intCast(capacity_frames_u64 / options.frame_size);
+            if (options.frame_count == 0) {
+                return Error.InvalidBlockSize;
+            }
+        } else if (options.frame_count < 16) {
             return Error.InvalidBlockSize;
         }
 
@@ -55,7 +80,12 @@ pub const Ring = struct {
         os.setsockopt(fd, os.SOL.PACKET, 5, std.mem.asBytes(&req)) catch return Error.RingSetupFailed; // PACKET_RX_RING
 
         // Map the ring buffer
-        const total_size = options.block_size * options.block_count;
+        const total_size_u64 = @as(u64, options.block_size) * options.block_count;
+        if (total_size_u64 > std.math.maxInt(usize)) {
+            return Error.InvalidBlockSize;
+        }
+
+        const total_size: usize = @intCast(total_size_u64);
         const mmap_slice = os.mmap(null, total_size, os.PROT.READ | os.PROT.WRITE, .{ .TYPE = .SHARED }, fd, 0) catch return Error.MmapFailed;
 
         const ring = try std.heap.page_allocator.create(Ring);

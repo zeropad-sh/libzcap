@@ -4,6 +4,8 @@ const os = std.posix;
 pub const KernelFeatures = enum(u32) {
     basic = 1 << 0,
     ring_v3 = 1 << 1,
+    fanout = 1 << 5,
+    busy_poll = 1 << 6,
     ebpf = 1 << 2,
     hw_tstamp = 1 << 3,
     af_xdp = 1 << 4,
@@ -19,7 +21,7 @@ pub const KernelVersion = struct {
     }
 
     fn readUtsRelease() KernelVersion {
-        const fd = os.open("/proc/version", .{ .ACCMODE = .RDONLY }) catch return .{ .major = 2, .minor = 2, .patch = 0 };
+        const fd = os.open("/proc/version", .{ .ACCMODE = .RDONLY }, 0) catch return .{ .major = 2, .minor = 2, .patch = 0 };
         defer os.close(fd);
 
         var buf: [256]u8 = undefined;
@@ -64,6 +66,8 @@ pub const KernelVersion = struct {
         return switch (feature) {
             .basic => true,
             .ring_v3 => self.major > 3 or (self.major == 3 and self.minor >= 2),
+            .fanout => self.major > 2 or (self.major == 2 and self.minor >= 6 and self.patch >= 37),
+            .busy_poll => self.major > 3 or (self.major == 3 and self.minor >= 11),
             .ebpf => self.major > 3 or (self.major == 3 and self.minor >= 19),
             .hw_tstamp => self.major >= 4,
             .af_xdp => self.major >= 5 or (self.major == 4 and self.minor >= 18),
@@ -96,21 +100,21 @@ pub fn detectFeatures() u32 {
 }
 
 test "kernel version parsing" {
-    const v1 = .{ .major = 5, .minor = 15, .patch = 0 };
+    const v1: KernelVersion = .{ .major = 5, .minor = 15, .patch = 0 };
     try std.testing.expect(v1.supports(.basic));
     try std.testing.expect(v1.supports(.ring_v3));
     try std.testing.expect(v1.supports(.ebpf));
     try std.testing.expect(v1.supports(.hw_tstamp));
     try std.testing.expect(v1.supports(.af_xdp));
 
-    const v2 = .{ .major = 3, .minor = 10, .patch = 0 };
+    const v2: KernelVersion = .{ .major = 3, .minor = 10, .patch = 0 };
     try std.testing.expect(v2.supports(.basic));
     try std.testing.expect(v2.supports(.ring_v3));
     try std.testing.expect(!v2.supports(.ebpf));
     try std.testing.expect(!v2.supports(.hw_tstamp));
     try std.testing.expect(!v2.supports(.af_xdp));
 
-    const v3 = .{ .major = 2, .minor = 6, .patch = 32 };
+    const v3: KernelVersion = .{ .major = 2, .minor = 6, .patch = 32 };
     try std.testing.expect(v3.supports(.basic));
     try std.testing.expect(!v3.supports(.ring_v3));
 }

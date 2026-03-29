@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const ring = @import("../ring.zig");
 const proto = struct {
     const EthernetFrame = @import("../proto/ethernet.zig").EthernetFrame;
 };
@@ -28,7 +29,27 @@ pub const CaptureOptions = struct {
     promisc: bool = false,
     timeout_ms: u32 = 1000,
     filter: ?[]const u8 = null,
+    ring: ring.RingOptions = .{},
     buffer_mode: BufferMode = .copy,
+    fanout: FanoutConfig = .{},
+    busy_poll_usec: u32 = 0,
+    fallback_to_copy: bool = true,
+};
+
+pub const FanoutMode = enum {
+    none,
+    hash,
+    lb,
+    cpu,
+    random,
+    rollover,
+    cbpf,
+    ebpf,
+};
+
+pub const FanoutConfig = struct {
+    mode: FanoutMode = .none,
+    group_id: u16 = 1,
 };
 
 pub const BufferMode = enum {

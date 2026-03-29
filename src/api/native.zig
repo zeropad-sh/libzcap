@@ -7,7 +7,11 @@ pub const NativeOptions = struct {
     promisc: bool = false,
     timeout_ms: u32 = 1000,
     filter: ?[]const u8 = null,
+    ring: libzcap.ring.RingOptions = .{},
     buffer: BufferMode = .copy,
+    fanout: libzcap.FanoutConfig = .{},
+    busy_poll_usec: u32 = 0,
+    fallback_to_copy: bool = true,
 };
 
 pub const BufferMode = enum {
@@ -26,10 +30,14 @@ pub const Capture = struct {
             .promisc = opts.promisc,
             .timeout_ms = opts.timeout_ms,
             .filter = opts.filter,
+            .ring = opts.ring,
             .buffer_mode = switch (opts.buffer) {
                 .copy => .copy,
                 .ring_mmap => .ring_mmap,
             },
+            .fanout = opts.fanout,
+            .busy_poll_usec = opts.busy_poll_usec,
+            .fallback_to_copy = opts.fallback_to_copy,
         });
 
         return .{
