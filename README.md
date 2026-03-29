@@ -39,6 +39,13 @@ cd libzcap
 zig build test
 ```
 
+## 📚 Documentation
+
+Use the docs folder for a guided, example-first entry point:
+
+- [Documentation Hub](docs/README.md)
+- [Getting Started](docs/getting-started.md)
+
 ## 🖥️ zigdump CLI Usage
 
 The repository includes a natively built testing harness named `zigdump` acting as a comprehensive, fully-featured pcap generation and packet extraction command line tool natively exercising libzcap!
