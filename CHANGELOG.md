@@ -2,6 +2,25 @@
 
 All notable changes to libzcap are documented here.
 
+## [0.3.1] - 2026-04-05
+
+### Added
+- Added a dedicated docs page for native async wait workflows:
+  - [C++11 Native Event Wait](docs/examples/cpp11-async-native-wait.md)
+- Added explicit docs coverage for `zpcap_getevent()` in feature and backend documentation.
+
+### Changed
+- Improved documentation discovery by linking native async-wait support from:
+  - [docs/README.md](docs/README.md)
+  - [docs/getting-started.md](docs/getting-started.md)
+  - [docs/features/compatibility-layer.md](docs/features/compatibility-layer.md)
+  - [docs/features/advanced-workflows.md](docs/features/advanced-workflows.md)
+  - [docs/features/platform-backends.md](docs/features/platform-backends.md)
+  - [examples/README.md](examples/README.md)
+
+### Fixed
+- Fixed docs/examples parity by documenting one native example that was previously present in code but missing from docs coverage.
+
 ## [0.3.0] - 2026-04-05
 
 ### Added
