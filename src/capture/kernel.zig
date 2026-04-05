@@ -1,5 +1,6 @@
 const std = @import("std");
 const os = std.posix;
+const builtin = @import("builtin");
 
 pub const KernelFeatures = enum(u32) {
     basic = 1 << 0,
@@ -17,6 +18,9 @@ pub const KernelVersion = struct {
     patch: u32,
 
     pub fn detect() KernelVersion {
+        if (builtin.os.tag != .linux) {
+            return .{ .major = 2, .minor = 2, .patch = 0 };
+        }
         return readUtsRelease();
     }
 
