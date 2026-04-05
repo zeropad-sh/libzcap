@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     zpcap_pkthdr *hdr = NULL;
     const uint8_t *packet = NULL;
     uint32_t written = 0;
-    int rc;
+    int rc = 0;
 
     while ((rc = zpcap_next_ex(handle, &hdr, &packet)) == 1) {
         ++written;
@@ -53,8 +53,14 @@ int main(int argc, char **argv) {
     printf("final zpcap_dump_flush rc=%d\n", final_flush);
     printf("written packets=%" PRIu32 "\n", written);
 
+    if (rc < 0) {
+        fprintf(stderr, "zpcap_next_ex failed: %d\n", rc);
+        zpcap_dump_close(dumper);
+        zpcap_close(handle);
+        return 1;
+    }
+
     zpcap_dump_close(dumper);
     zpcap_close(handle);
-
-    return rc < 0 ? 1 : 0;
+    return 0;
 }
