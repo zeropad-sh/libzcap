@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    struct zpcap_pkthdr *hdr = NULL;
+    zpcap_pkthdr *hdr = NULL;
     const uint8_t *packet = NULL;
     uint32_t written = 0;
     int rc;
