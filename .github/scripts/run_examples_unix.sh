@@ -102,13 +102,26 @@ run_tolerant() {
 }
 
 run_linux_only() {
-    local use_sudo=0
-
     if [ "$OS" != "Linux" ]; then
         echo "Skipping linux-only example on ${OS}: $1" | tee -a "$SUMMARY"
         return 0
     fi
 
+    local use_sudo=0
+    if [ "$SUDO_LINUX_EXAMPLES" -eq 1 ]; then
+        use_sudo=1
+    fi
+
+    run_tolerant "$1" "$2" "$3" "$use_sudo" "${@:4}"
+}
+
+run_linux_only_sudo() {
+    if [ "$OS" != "Linux" ]; then
+        echo "Skipping linux-only example on ${OS}: $1" | tee -a "$SUMMARY"
+        return 0
+    fi
+
+    local use_sudo=1
     if [ "$SUDO_LINUX_EXAMPLES" -eq 1 ]; then
         use_sudo=1
     fi
@@ -129,15 +142,15 @@ run_required "21_error_surface_c" "zpcap_dispatch returned=" "$BUILD_DIR/21_erro
 run_required "21_error_surface_cpp" "zpcap_dispatch returned=" "$BUILD_DIR/21_error_surface_cpp" "$SAMPLE"
 run_required "22_dump_flush_c" "final zpcap_dump_flush rc=" "$BUILD_DIR/22_dump_flush_c" "$SAMPLE"
 run_required "22_dump_flush_cpp" "final zpcap_dump_flush rc=" "$BUILD_DIR/22_dump_flush_cpp" "$SAMPLE"
-run_linux_only "20_linux_kernel_features_c" "Feature mask:" 1 "$BUILD_DIR/20_linux_kernel_features_c"
+run_linux_only_sudo "20_linux_kernel_features_c" "Feature mask:" 1 "$BUILD_DIR/20_linux_kernel_features_c"
 
-run_linux_only "01_basic_capture_c" "-" 1 "$BUILD_DIR/01_basic_capture_c"
-run_linux_only "02_pcap_dump_c" "-" 1 "$BUILD_DIR/02_pcap_dump_c"
-run_linux_only "04_bpf_filter_c" "-" 1 "$BUILD_DIR/04_bpf_filter_c"
-run_linux_only "05_next_and_stats_c" "-" 1 "$BUILD_DIR/05_next_and_stats_c"
-run_linux_only "06_filtered_capture_to_file_c" "-" 1 "$BUILD_DIR/06_filtered_capture_to_file_c"
-run_linux_only "10_live_capture_options_c" "-" 1 "$BUILD_DIR/10_live_capture_options_c" "lo"
-run_linux_only "13_send_packet_c" "-" 1 "$BUILD_DIR/13_send_packet_c" "lo"
-run_linux_only "18_async_select_c" "-" 1 "$BUILD_DIR/18_async_select_c" "lo" "2"
-run_linux_only "17_send_packet_cpp" "-" 1 "$BUILD_DIR/17_send_packet_cpp" "lo"
-run_linux_only "18_async_select_cpp" "-" 1 "$BUILD_DIR/18_async_select_cpp" "lo" "2"
+run_linux_only_sudo "01_basic_capture_c" "-" 1 "$BUILD_DIR/01_basic_capture_c"
+run_linux_only_sudo "02_pcap_dump_c" "-" 1 "$BUILD_DIR/02_pcap_dump_c"
+run_linux_only_sudo "04_bpf_filter_c" "-" 1 "$BUILD_DIR/04_bpf_filter_c"
+run_linux_only_sudo "05_next_and_stats_c" "-" 1 "$BUILD_DIR/05_next_and_stats_c"
+run_linux_only_sudo "06_filtered_capture_to_file_c" "-" 1 "$BUILD_DIR/06_filtered_capture_to_file_c"
+run_linux_only_sudo "10_live_capture_options_c" "-" 1 "$BUILD_DIR/10_live_capture_options_c" "lo"
+run_linux_only_sudo "13_send_packet_c" "-" 1 "$BUILD_DIR/13_send_packet_c" "lo"
+run_linux_only_sudo "18_async_select_c" "-" 1 "$BUILD_DIR/18_async_select_c" "lo" "2"
+run_linux_only_sudo "17_send_packet_cpp" "-" 1 "$BUILD_DIR/17_send_packet_cpp" "lo"
+run_linux_only_sudo "18_async_select_cpp" "-" 1 "$BUILD_DIR/18_async_select_cpp" "lo" "2"

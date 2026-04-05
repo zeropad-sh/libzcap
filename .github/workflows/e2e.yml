@@ -80,7 +80,7 @@ jobs:
           export SAMPLE="tests/sample.pcap"
           export OS="${{ runner.os }}"
           export TIMEOUT_SECONDS=10
-          export SUDO_LINUX_EXAMPLES=1
+          export SUDO_LINUX_EXAMPLES=0
 
           bash ./.github/scripts/run_examples_unix.sh
 
