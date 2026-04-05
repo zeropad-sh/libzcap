@@ -23,10 +23,18 @@ function Invoke-RequiredExample {
     "Running required example: $Label" | Tee-Object -FilePath $Summary -Append
     $exePath = Join-Path $BuildDir $Executable
     $output = & $exePath @Arguments 2>&1
-    $rc = $LASTEXITCODE
+    $rc = [int]$LASTEXITCODE
     $output | Tee-Object -FilePath $Summary -Append
 
-    if ($AllowedExitCodes -notcontains $rc) {
+    $matchedExit = $false
+    foreach ($allowed in $AllowedExitCodes) {
+        if ($allowed -eq $rc) {
+            $matchedExit = $true
+            break
+        }
+    }
+
+    if (-not $matchedExit) {
         throw "FAIL: $Label exited with $rc"
     }
 
