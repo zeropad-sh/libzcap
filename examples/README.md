@@ -23,6 +23,8 @@ These standalone examples demonstrate 1-to-1 operational conformity with histori
 - **`17_send_packet.cpp`**: C++ packet injection with `zpcap_sendpacket` and `zpcap_send`.
 - **`18_async_select.c`**: C event-loop capture using `select()` and `zpcap_next_ex`.
 - **`18_async_select.cpp`**: C++ event-loop capture using `select()` and `zpcap_next_ex`.
+- **`19_async_native_wait.cpp`**: Cross-platform async event example that uses selectable FD,
+  native event handles when available, and timed-poll fallback on either path.
 - **`20_linux_kernel_features.c`**: Linux feature probe and feature-aware open path for `ring_mmap`, fanout, and busy-poll with privilege-safe fallback.
 
 ### Compiling and Testing

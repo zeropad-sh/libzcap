@@ -29,6 +29,8 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
 - [C++11 Packet Injection](./examples/cpp11-send-packet.md): equivalent C++ sample for send APIs.
 - [C++11 Async Select Loop](./examples/cpp11-async-select.md): event-driven capture with
   `zpcap_get_selectable_fd` (or polling fallback when fd integration is unavailable).
+- [C++11 Native Event Wait](./examples/cpp11-async-native-wait.md): adaptive async loop with
+  `zpcap_getevent`, `zpcap_get_selectable_fd`, and fallback polling.
 - [Zero-Copy Architecture](./features/zero-copy.md): how capture buffers avoid copies.
 - [Cross-Platform Backends](./features/platform-backends.md): Linux/macOS/BSD/Windows behavior and prerequisites.
 - [`zpcap` Compatibility Layer](./features/compatibility-layer.md): API mapping and migration path.
@@ -59,3 +61,4 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
   - [Non-Blocking + Stats](./examples/cpp11-nonblocking-stats.md)
   - [Packet Injection](./examples/cpp11-send-packet.md)
   - [Async Select Loop](./examples/cpp11-async-select.md)
+  - [Native Event Wait](./examples/cpp11-async-native-wait.md)

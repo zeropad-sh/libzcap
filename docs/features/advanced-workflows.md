@@ -60,6 +60,11 @@ See: [C99 Live Capture Options](../examples/c99-live-options.md)
   - [C99 Async Select Loop](../examples/c99-async-select.md)
   - [C++11 Async Select Loop](../examples/cpp11-async-select.md)
 
+For Windows-native flow, you can also combine `zpcap_getevent` with
+`WaitForSingleObject` and keep the same loop logic.
+
+- [C++11 Native Event Wait](../examples/cpp11-async-native-wait.md)
+
 ## 7) Linux feature-aware runtime selection
 
 Use `zpcap_detect_features()` and `zpcap_open_live_ex()` when you want a single

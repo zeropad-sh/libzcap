@@ -16,6 +16,7 @@
 - Packet send and sendpacket
 - Non-blocking read mode (`zpcap_setnonblock`/`zpcap_getnonblock`)
 - FD-based async integration (`zpcap_get_selectable_fd`) for event loops on supported platforms
+- Native event handle integration (`zpcap_getevent`) where the backend exposes one
 - Per-handle stats (`zpcap_stats`)
 - Loop callback processing
 - BPF compile/apply/free

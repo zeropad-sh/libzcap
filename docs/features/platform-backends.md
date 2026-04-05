@@ -19,6 +19,8 @@
 
 - Uses runtime loading of `wpcap.dll`.
 - `libzcap` does not require Npcap at build time.
+- `zpcap_getevent()` exposes a native event handle for wait-based async loops when the
+  backend supports it.
 
 ## Migration note
 
