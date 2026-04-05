@@ -6,6 +6,7 @@ SAMPLE="${SAMPLE:-tests/sample.pcap}"
 SUMMARY="${SUMMARY:-bench_results/incoming/local/summary.txt}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-8}"
 OS="${OS:-$(uname)}"
+SUDO_LINUX_EXAMPLES="${SUDO_LINUX_EXAMPLES:-0}"
 
 mkdir -p "$(dirname "$SUMMARY")"
 
@@ -46,7 +47,8 @@ run_tolerant() {
     local label="$1"
     local expected="$2"
     local allow_timeout="$3"
-    shift 3
+    local use_sudo="$4"
+    shift 4
     local out rc
     local cmd=("$@")
 
@@ -54,10 +56,18 @@ run_tolerant() {
     out="$(mktemp)"
     set +e
     if command -v timeout >/dev/null 2>&1 && [ "$TIMEOUT_SECONDS" -gt 0 ]; then
-        timeout "${TIMEOUT_SECONDS}" "${cmd[@]}" > "$out" 2>&1
+        if [ "$use_sudo" -eq 1 ] && [ "$OS" = "Linux" ]; then
+            sudo -n --preserve-env=LD_LIBRARY_PATH --preserve-env=DYLD_LIBRARY_PATH --preserve-env=PATH --preserve-env=ZCAP_LIB_PATH --preserve-env=SUMMARY --preserve-env=SAMPLE --preserve-env=OS --preserve-env=TIMEOUT_SECONDS timeout "${TIMEOUT_SECONDS}" "${cmd[@]}" > "$out" 2>&1
+        else
+            timeout "${TIMEOUT_SECONDS}" "${cmd[@]}" > "$out" 2>&1
+        fi
         rc=$?
     else
-        "${cmd[@]}" > "$out" 2>&1
+        if [ "$use_sudo" -eq 1 ] && [ "$OS" = "Linux" ]; then
+            sudo -n --preserve-env=LD_LIBRARY_PATH --preserve-env=DYLD_LIBRARY_PATH --preserve-env=PATH --preserve-env=ZCAP_LIB_PATH --preserve-env=SUMMARY --preserve-env=SAMPLE --preserve-env=OS --preserve-env=TIMEOUT_SECONDS "${cmd[@]}" > "$out" 2>&1
+        else
+            "${cmd[@]}" > "$out" 2>&1
+        fi
         rc=$?
     fi
     set -e
@@ -92,12 +102,18 @@ run_tolerant() {
 }
 
 run_linux_only() {
+    local use_sudo=0
+
     if [ "$OS" != "Linux" ]; then
         echo "Skipping linux-only example on ${OS}: $1" | tee -a "$SUMMARY"
         return 0
     fi
 
-    run_tolerant "$@"
+    if [ "$SUDO_LINUX_EXAMPLES" -eq 1 ]; then
+        use_sudo=1
+    fi
+
+    run_tolerant "$1" "$2" "$3" "$use_sudo" "${@:4}"
 }
 
 run_required "03_offline_read_cpp" "Done reading buffer trace." "$BUILD_DIR/03_offline_read_cpp" "$SAMPLE"
