@@ -1,10 +1,10 @@
 const std = @import("std");
 const testing = std.testing;
-const EthernetFrame = @import("../proto/ethernet.zig").EthernetFrame;
-const IPv4Packet = @import("../proto/ipv4.zig").IPv4Packet;
-const IPv6Packet = @import("../proto/ipv6.zig").IPv6Packet;
-const TcpSegment = @import("../proto/tcp.zig").TcpSegment;
-const UdpDatagram = @import("../proto/udp.zig").UdpDatagram;
+const EthernetFrame = @import("libzcap").proto.EthernetFrame;
+const IPv4Packet = @import("libzcap").proto.IPv4Packet;
+const IPv6Packet = @import("libzcap").proto.IPv6Packet;
+const TcpSegment = @import("libzcap").proto.TcpSegment;
+const UdpDatagram = @import("libzcap").proto.UdpDatagram;
 
 test "ethernet frame parse" {
     const packet = [_]u8{

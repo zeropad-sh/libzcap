@@ -1,7 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
-const compiler = @import("../filter/compiler.zig");
-const Instruction = @import("../filter/cbpf.zig").Instruction;
+const compiler = @import("libzcap").cBPF;
+const Instruction = @import("libzcap").cBPF.Instruction;
 
 const RET_ALL: u32 = 0xffff_ffff;
 const RET_NONE: u32 = 0x0000_0000;

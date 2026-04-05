@@ -1,4 +1,4 @@
-const lib = @import("../lib.zig");
+const lib = @import("libzcap");
 
 comptime {
     _ = lib;

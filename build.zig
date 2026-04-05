@@ -44,6 +44,7 @@ pub fn build(b: *std.Build) void {
 
     const test_module = b.createModule(.{
         .root_source_file = b.path("src/test/all.zig"),
+        .imports = &.{.{ .name = "libzcap", .module = mod }},
         .target = target,
         .optimize = optimize,
     });

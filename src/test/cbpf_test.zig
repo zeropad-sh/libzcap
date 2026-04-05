@@ -1,6 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
-const cBPF = @import("../filter/cbpf.zig");
+const cBPF = @import("libzcap").cBPF;
 const Instruction = cBPF.Instruction;
 
 test "cBPF instruction ld" {
