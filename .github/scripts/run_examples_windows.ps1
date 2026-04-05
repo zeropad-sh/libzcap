@@ -34,7 +34,7 @@ function Invoke-RequiredExample {
     }
 }
 
-Invoke-RequiredExample -Label "03_offline_read_cpp" -Executable "03_offline_read_cpp.exe" -Expected "End of capture after" -Arguments @($Sample)
+Invoke-RequiredExample -Label "03_offline_read_cpp" -Executable "03_offline_read_cpp.exe" -Expected "Done reading buffer trace." -Arguments @($Sample)
 Invoke-RequiredExample -Label "07_offline_split_ipv4_cpp" -Executable "07_offline_split_ipv4_cpp.exe" -Expected "Saved output to ipv4_only.pcap" -Arguments @($Sample)
 Invoke-RequiredExample -Label "09_offline_split_transport_cpp" -Executable "09_offline_split_transport_cpp.exe" -Expected "written:" -Arguments @($Sample)
 Invoke-RequiredExample -Label "08_offline_protocol_stats_c" -Executable "08_offline_protocol_stats_c.exe" -Expected "packets processed:" -Arguments @($Sample)

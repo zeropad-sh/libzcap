@@ -100,7 +100,7 @@ run_linux_only() {
     run_tolerant "$@"
 }
 
-run_required "03_offline_read_cpp" "End of capture after" "$BUILD_DIR/03_offline_read_cpp" "$SAMPLE"
+run_required "03_offline_read_cpp" "Done reading buffer trace." "$BUILD_DIR/03_offline_read_cpp" "$SAMPLE"
 run_required "07_offline_split_ipv4_cpp" "Saved output to ipv4_only.pcap" "$BUILD_DIR/07_offline_split_ipv4_cpp" "$SAMPLE"
 run_required "09_offline_split_transport_cpp" "written:" "$BUILD_DIR/09_offline_split_transport_cpp" "$SAMPLE"
 run_required "08_offline_protocol_stats_c" "packets processed:" "$BUILD_DIR/08_offline_protocol_stats_c" "$SAMPLE"
