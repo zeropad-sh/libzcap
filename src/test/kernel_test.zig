@@ -1,7 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
 const KernelVersion = @import("libzcap").kernel.KernelVersion;
-const KernelFeatures = @import("libzcap").kernel.KernelFeatures;
 
 test "kernel version supports basic" {
     const v = KernelVersion{ .major = 2, .minor = 2, .patch = 0 };
