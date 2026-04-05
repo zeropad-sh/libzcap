@@ -109,49 +109,99 @@ pub const Ring = struct {
     }
 
     pub fn next(ring: *Ring) ?PacketView {
+        var scanned: u32 = 0;
+        while (scanned < ring.options.block_count) {
+            const block = ring.getBlock(ring.block_idx);
+            const status = @atomicLoad(u32, &block.bh1.block_status, .acquire);
+
+            if (status & 1 == 0) { // TP_STATUS_USER not set
+                return null;
+            }
+
+            const num_pkts = block.bh1.num_pkts;
+            const block_len: usize = ring.options.block_size;
+            if (num_pkts == 0 or ring.packet_idx > num_pkts) {
+                ring.releaseCurrentBlock();
+                scanned += 1;
+                continue;
+            }
+
+            if (ring.packet_idx == 0) {
+                ring.current_pkt_offset = block.bh1.offset_to_first_pkt;
+            } else if (ring.current_pkt_offset == 0) {
+                ring.releaseCurrentBlock();
+                scanned += 1;
+                continue;
+            }
+
+            const block_start = @as(usize, ring.block_idx) * block_len;
+            const frame_start = ring.current_pkt_offset;
+            const frame_abs_start = block_start + frame_start;
+            const header_span = frame_start + @sizeOf(linux.tpacket3_hdr);
+            if (header_span > block_len) {
+                ring.releaseCurrentBlock();
+                scanned += 1;
+                continue;
+            }
+
+            const pkt: *linux.tpacket3_hdr = @ptrCast(@alignCast(ring.mmap_slice.ptr + frame_abs_start));
+            var frame_end: usize = @as(usize, frame_start) + @as(usize, pkt.next_offset);
+            if (frame_end == 0) {
+                if (ring.packet_idx + 1 < num_pkts) {
+                    ring.releaseCurrentBlock();
+                    scanned += 1;
+                    continue;
+                }
+                frame_end = block_len;
+            }
+
+            if (frame_end > block_len or frame_end <= frame_start) {
+                ring.releaseCurrentBlock();
+                scanned += 1;
+                continue;
+            }
+
+            const mac_offset = frame_start + pkt.mac;
+            if (pkt.len < pkt.snaplen or mac_offset > frame_end) {
+                ring.releaseCurrentBlock();
+                scanned += 1;
+                continue;
+            }
+
+            const snap_end = mac_offset + pkt.snaplen;
+            if (snap_end > frame_end or snap_end > block_len) {
+                ring.releaseCurrentBlock();
+                scanned += 1;
+                continue;
+            }
+
+            const data = ring.mmap_slice[(block_start + mac_offset)..(block_start + snap_end)];
+            const timestamp_ns = @as(u64, pkt.sec) * 1_000_000_000 + @as(u64, pkt.nsec);
+
+            ring.packet_idx += 1;
+            if (ring.packet_idx < num_pkts) {
+                ring.current_pkt_offset += pkt.next_offset;
+            } else {
+                ring.releaseCurrentBlock();
+            }
+
+            return .{
+                .data = data,
+                .timestamp_ns = timestamp_ns,
+                .captured_len = pkt.snaplen,
+                .original_len = pkt.len,
+            };
+        }
+
+        return null;
+    }
+
+    fn releaseCurrentBlock(ring: *Ring) void {
         const block = ring.getBlock(ring.block_idx);
-        const status = @atomicLoad(u32, &block.bh1.block_status, .acquire);
-
-        if (status & 1 == 0) { // TP_STATUS_USER not set
-            return null;
-        }
-
-        const num_pkts = block.bh1.num_pkts;
-        if (num_pkts == 0) {
-            @atomicStore(u32, &block.bh1.block_status, 0, .release);
-            ring.block_idx = (ring.block_idx + 1) % ring.options.block_count;
-            ring.packet_idx = 0;
-            return ring.next();
-        }
-
-        if (ring.packet_idx == 0) {
-            ring.current_pkt_offset = block.bh1.offset_to_first_pkt;
-        }
-
-        // Get packet at current position
-        const block_start = @as(usize, ring.block_idx) * ring.options.block_size;
-        const pkt_offset_abs = block_start + ring.current_pkt_offset;
-        const pkt: *linux.tpacket3_hdr = @ptrCast(@alignCast(ring.mmap_slice.ptr + pkt_offset_abs));
-
-        const mac_offset = pkt_offset_abs + pkt.mac;
-        const data = ring.mmap_slice[mac_offset .. mac_offset + pkt.snaplen];
-        const timestamp_ns = @as(u64, pkt.sec) * 1_000_000_000 + @as(u64, pkt.nsec);
-
-        ring.packet_idx += 1;
-        if (ring.packet_idx < num_pkts) {
-            ring.current_pkt_offset += pkt.next_offset;
-        } else {
-            @atomicStore(u32, &block.bh1.block_status, 0, .release);
-            ring.block_idx = (ring.block_idx + 1) % ring.options.block_count;
-            ring.packet_idx = 0;
-        }
-
-        return .{
-            .data = data,
-            .timestamp_ns = timestamp_ns,
-            .captured_len = pkt.snaplen,
-            .original_len = pkt.len,
-        };
+        @atomicStore(u32, &block.bh1.block_status, 0, .release);
+        ring.block_idx = (ring.block_idx + 1) % ring.options.block_count;
+        ring.packet_idx = 0;
+        ring.current_pkt_offset = 0;
     }
 
     fn getBlock(ring: *Ring, idx: u32) *tpacket_block_desc {

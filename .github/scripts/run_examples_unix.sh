@@ -109,6 +109,10 @@ run_required "12_nonblocking_stats_c" "zpcap_stats:" "$BUILD_DIR/12_nonblocking_
 run_required "15_findalldevs_lookupdev_cpp" "Devices returned by zpcap_findalldevs:" "$BUILD_DIR/15_findalldevs_lookupdev_cpp"
 run_required "16_nonblocking_stats_cpp" "zpcap_stats:" "$BUILD_DIR/16_nonblocking_stats_cpp" "$SAMPLE"
 run_required "19_async_native_wait_cpp" "Loop finished after" "$BUILD_DIR/19_async_native_wait_cpp" "--offline" "$SAMPLE" "18"
+run_required "21_error_surface_c" "zpcap_dispatch returned=" "$BUILD_DIR/21_error_surface_c" "$SAMPLE"
+run_required "21_error_surface_cpp" "zpcap_dispatch returned=" "$BUILD_DIR/21_error_surface_cpp" "$SAMPLE"
+run_required "22_dump_flush_c" "final zpcap_dump_flush rc=" "$BUILD_DIR/22_dump_flush_c" "$SAMPLE"
+run_required "22_dump_flush_cpp" "final zpcap_dump_flush rc=" "$BUILD_DIR/22_dump_flush_cpp" "$SAMPLE"
 run_linux_only "20_linux_kernel_features_c" "Feature mask:" 1 "$BUILD_DIR/20_linux_kernel_features_c"
 
 run_linux_only "01_basic_capture_c" "-" 1 "$BUILD_DIR/01_basic_capture_c"

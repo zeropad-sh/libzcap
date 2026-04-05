@@ -49,3 +49,7 @@ Invoke-RequiredExample -Label "12_nonblocking_stats_c" -Executable "12_nonblocki
 Invoke-RequiredExample -Label "15_findalldevs_lookupdev_cpp" -Executable "15_findalldevs_lookupdev_cpp.exe" -Expected "findalldevs failed: UnsupportedPlatform" -AllowedExitCodes @(0, 1)
 Invoke-RequiredExample -Label "16_nonblocking_stats_cpp" -Executable "16_nonblocking_stats_cpp.exe" -Expected "zpcap_stats:" -Arguments @($Sample)
 Invoke-RequiredExample -Label "19_async_native_wait_cpp" -Executable "19_async_native_wait_cpp.exe" -Expected "Loop finished after" -Arguments @("--offline", $Sample, "18")
+Invoke-RequiredExample -Label "21_error_surface_c" -Executable "21_error_surface_c.exe" -Expected "zpcap_dispatch returned="
+Invoke-RequiredExample -Label "21_error_surface_cpp" -Executable "21_error_surface_cpp.exe" -Expected "zpcap_dispatch returned="
+Invoke-RequiredExample -Label "22_dump_flush_c" -Executable "22_dump_flush_c.exe" -Expected "final zpcap_dump_flush rc="
+Invoke-RequiredExample -Label "22_dump_flush_cpp" -Executable "22_dump_flush_cpp.exe" -Expected "final zpcap_dump_flush rc="

@@ -22,7 +22,6 @@ pub const Handle = struct {
     pub fn open(options: CaptureOptions) Error!Handle {
         const protocol = std.mem.nativeToBig(u16, 0x0003); // ETH_P_ALL
         const fd = openRawSocket(protocol) catch |err| return err;
-        errdefer os.close(fd);
         const kernel_features = kernel.KernelVersion.detect().detectFeatures();
 
         var h = Handle{
@@ -31,6 +30,7 @@ pub const Handle = struct {
             .buffer = undefined,
             .ring = null,
         };
+        errdefer h.deinit();
 
         h.options.buffer_mode = try Handle.resolveBufferMode(kernel_features, options.buffer_mode, options.fallback_to_copy);
 

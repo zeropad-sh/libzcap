@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
 ## Build and run
 
 ```bash
-cmake -S examples -B examples/build -DLIBZCAP_ROOT="$(pwd)" -DLIBZCAP_BUILD_DIR="$(pwd)/zig-out/lib"
+cmake -S examples -B examples/build -DLIBZCAP_ROOT="$(pwd)" -DLIBZCAP_BUILD_DIR="$(pwd)/zig-out"
 cmake --build examples/build -j
 ./examples/build/19_async_native_wait_cpp --offline tests/sample.pcap 6
 ```

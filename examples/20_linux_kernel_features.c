@@ -16,10 +16,24 @@ static void print_features(void) {
     printf("  ring_mmap=%s\n", (features & ZPCAP_FEATURE_RING_V3) ? "yes" : "no");
     printf("  fanout=%s\n", (features & ZPCAP_FEATURE_FANOUT) ? "yes" : "no");
     printf("  busy_poll=%s\n", (features & ZPCAP_FEATURE_BUSY_POLL) ? "yes" : "no");
+    printf("  ebpf=%s\n", (features & ZPCAP_FEATURE_EBPF) ? "yes" : "no");
+    printf("  hw_tstamp=%s\n", (features & ZPCAP_FEATURE_HW_TSTAMP) ? "yes" : "no");
+    printf("  af_xdp=%s\n", (features & ZPCAP_FEATURE_AF_XDP) ? "yes" : "no");
 }
 
 static int is_root_capture_error(const char *err) {
     return err != NULL && (strstr(err, "Permission") != NULL || strstr(err, "DENIED") != NULL);
+}
+
+static const char *buffer_mode_name(int mode) {
+    switch (mode) {
+        case ZPCAP_BUFFER_MODE_RING_MMAP:
+            return "ring_mmap";
+        case ZPCAP_BUFFER_MODE_COPY:
+            return "copy";
+        default:
+            return "offline";
+    }
 }
 
 int main(int argc, char **argv) {
@@ -84,7 +98,8 @@ int main(int argc, char **argv) {
 
     printf("Opened live handle on device: %s\n", device);
     printf("Requested mode: %s\n", use_ring ? "ring_mmap" : "copy");
-    printf("Runtime mode: %s\n", (features & ZPCAP_FEATURE_RING_V3) ? "ring_mmap" : "copy");
+    const int runtime_mode = zpcap_get_buffer_mode(handle);
+    printf("Runtime mode: %s\n", buffer_mode_name(runtime_mode));
 
     if (zpcap_setnonblock(handle, 1, errbuf) != 0) {
         fprintf(stderr, "setnonblock failed: %s\n", errbuf);

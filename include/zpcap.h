@@ -32,6 +32,19 @@ typedef struct {
 #define ZPCAP_BUFFER_MODE_COPY 0
 #define ZPCAP_BUFFER_MODE_RING_MMAP 1
 
+#define ZPCAP_ERROR_OK 0
+#define ZPCAP_ERROR_NO_MEMORY 100
+#define ZPCAP_ERROR_INVALID_ARGUMENT 101
+#define ZPCAP_ERROR_NOT_ACTIVATED 102
+#define ZPCAP_ERROR_NO_SUCH_DEVICE 103
+#define ZPCAP_ERROR_PERM_DENIED 104
+#define ZPCAP_ERROR_UNSUPPORTED 105
+#define ZPCAP_ERROR_BUSY 106
+#define ZPCAP_ERROR_TIMEOUT 107
+#define ZPCAP_ERROR_NOT_IMPLEMENTED 108
+#define ZPCAP_ERROR_IO 109
+#define ZPCAP_ERROR_UNKNOWN 255
+
 #define ZPCAP_FANOUT_NONE 255
 #define ZPCAP_FANOUT_HASH 0
 #define ZPCAP_FANOUT_LB 1
@@ -87,7 +100,11 @@ ZPCAP_API zpcap_t *zpcap_open_live_ex(
 );
 ZPCAP_API const uint8_t *zpcap_next(zpcap_t *p, zpcap_pkthdr *h);
 ZPCAP_API void zpcap_close(zpcap_t *p);
+ZPCAP_API const char *zpcap_lib_version(void);
+ZPCAP_API const char *zpcap_strerror(int errnum);
+ZPCAP_API void zpcap_perror(zpcap_t *p, const char *prefix);
 ZPCAP_API const char *zpcap_geterr(zpcap_t *p);
+ZPCAP_API int zpcap_geterrnum(zpcap_t *p);
 ZPCAP_API int zpcap_datalink(zpcap_t *p);
 ZPCAP_API int zpcap_findalldevs(zpcap_if_t **alldevs, char *errbuf);
 ZPCAP_API void zpcap_freealldevs(zpcap_if_t *alldevs);
@@ -102,10 +119,12 @@ ZPCAP_API void zpcap_breakloop(zpcap_t *p);
 typedef struct zpcap_dumper zpcap_dumper_t;
 ZPCAP_API zpcap_dumper_t *zpcap_dump_open(zpcap_t *p, const char *fname);
 ZPCAP_API void zpcap_dump(uint8_t *user, const zpcap_pkthdr *h, const uint8_t *sp);
+ZPCAP_API int zpcap_dump_flush(zpcap_dumper_t *p);
 ZPCAP_API void zpcap_dump_close(zpcap_dumper_t *p);
 ZPCAP_API int zpcap_sendpacket(zpcap_t *p, const uint8_t *buf, int len);
 ZPCAP_API int zpcap_send(zpcap_t *p, const uint8_t *buf, int len);
 ZPCAP_API int zpcap_getnonblock(zpcap_t *p, char *errbuf);
+ZPCAP_API int zpcap_get_buffer_mode(zpcap_t *p);
 ZPCAP_API int zpcap_setnonblock(zpcap_t *p, int nonblock, char *errbuf);
 ZPCAP_API int zpcap_stats(zpcap_t *p, zpcap_stat_t *stats);
 ZPCAP_API int zpcap_get_selectable_fd(zpcap_t *p);

@@ -1,39 +1,48 @@
-pub const Opcode = enum(u8) {
-    ld = 0x00,
-    ldx = 0x01,
-    st = 0x02,
-    stx = 0x03,
-    add = 0x04,
-    sub = 0x05,
-    mul = 0x06,
-    div = 0x07,
-    @"or" = 0x08,
-    @"and" = 0x09,
-    lsh = 0x0a,
-    rsh = 0x0b,
-    neg = 0x0c,
-    mod = 0x0d,
-    xor = 0x0e,
-    jeq,
-    jgt,
-    jge,
-    jset,
+pub const InstructionClass = enum(u16) {
+    ld = 0x0000,
+    ldx = 0x0001,
+    alu = 0x0004,
+    jmp = 0x0005,
+    ret = 0x0006,
+    misc = 0x0007,
 };
 
-pub const Size = enum(u8) {
-    w = 0x00,
-    h = 0x08,
-    b = 0x10,
-    dw = 0x18,
+pub const InstructionSize = enum(u16) {
+    w = 0x0000,
+    h = 0x0008,
+    b = 0x0010,
+    dw = 0x0018,
 };
 
-pub const Mode = enum(u8) {
-    imp = 0x00,
-    mem = 0x01,
-    abs = 0x02,
-    ind = 0x03,
-    len = 0x40,
-    msh = 0x60,
+pub const InstructionMode = enum(u16) {
+    imp = 0x0000,
+    mem = 0x0060,
+    abs = 0x0020,
+    ind = 0x0040,
+    len = 0x0080,
+    msh = 0x00a0,
+};
+
+pub const AluOp = enum(u16) {
+    add = 0x0000,
+    sub = 0x0010,
+    mul = 0x0020,
+    div = 0x0030,
+    @"or" = 0x0040,
+    @"and" = 0x0050,
+    lsh = 0x0060,
+    rsh = 0x0070,
+    neg = 0x0080,
+    mod = 0x0090,
+    xor = 0x00a0,
+    jmp_reserved = 0x00b0,
+};
+
+pub const JumpOp = enum(u16) {
+    jeq = 0x0010,
+    jgt = 0x0020,
+    jge = 0x0030,
+    jset = 0x0040,
 };
 
 pub const Instruction = extern struct {
@@ -42,36 +51,36 @@ pub const Instruction = extern struct {
     jf: u8,
     k: u32,
 
-    pub fn ld(size: Size, mode: Mode, offset: u32) Instruction {
+    pub fn ld(size: InstructionSize, mode: InstructionMode, offset: u32) Instruction {
         return .{
-            .code = @as(u16, @intFromEnum(Opcode.ld)) | @as(u16, @intFromEnum(size)) | @as(u16, @intFromEnum(mode)),
+            .code = @intFromEnum(InstructionClass.ld) | @intFromEnum(size) | @intFromEnum(mode),
             .jt = 0,
             .jf = 0,
             .k = offset,
         };
     }
 
-    pub fn ldx(size: Size, mode: Mode, offset: u32) Instruction {
+    pub fn ldx(size: InstructionSize, mode: InstructionMode, offset: u32) Instruction {
         return .{
-            .code = @as(u16, @intFromEnum(Opcode.ldx)) | @as(u16, @intFromEnum(size)) | @as(u16, @intFromEnum(mode)),
+            .code = @intFromEnum(InstructionClass.ldx) | @intFromEnum(size) | @intFromEnum(mode),
             .jt = 0,
             .jf = 0,
             .k = offset,
         };
     }
 
-    pub fn alu(op: Opcode, k: u32) Instruction {
+    pub fn alu(op: AluOp, k: u32) Instruction {
         return .{
-            .code = @intFromEnum(op),
+            .code = @intFromEnum(InstructionClass.alu) | @intFromEnum(op),
             .jt = 0,
             .jf = 0,
             .k = k,
         };
     }
 
-    pub fn jmp(op: Opcode, jt: u8, jf: u8, k: u32) Instruction {
+    pub fn jmp(op: JumpOp, jt: u8, jf: u8, k: u32) Instruction {
         return .{
-            .code = @intFromEnum(op),
+            .code = @intFromEnum(InstructionClass.jmp) | @intFromEnum(op),
             .jt = jt,
             .jf = jf,
             .k = k,
@@ -80,7 +89,7 @@ pub const Instruction = extern struct {
 
     pub fn ret(k: u32) Instruction {
         return .{
-            .code = @intFromEnum(Opcode.ld) | @intFromEnum(Size.w) | @intFromEnum(Mode.imp),
+            .code = @intFromEnum(InstructionClass.ret),
             .jt = 0,
             .jf = 0,
             .k = k,

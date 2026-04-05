@@ -26,7 +26,7 @@ fn printFeatureLine(
     features: u32,
 ) void {
     std.debug.print(
-        "{s}: {d}.{d}.{d} ring={any} fanout={any} busy_poll={any}\n",
+        "{s}: {d}.{d}.{d} ring={any} fanout={any} busy_poll={any} ebpf={any} hw_tstamp={any} af_xdp={any}\n",
         .{
             label,
             version.major,
@@ -35,6 +35,9 @@ fn printFeatureLine(
             features & @intFromEnum(kernel.KernelFeatures.ring_v3) != 0,
             features & @intFromEnum(kernel.KernelFeatures.fanout) != 0,
             features & @intFromEnum(kernel.KernelFeatures.busy_poll) != 0,
+            features & @intFromEnum(kernel.KernelFeatures.ebpf) != 0,
+            features & @intFromEnum(kernel.KernelFeatures.hw_tstamp) != 0,
+            features & @intFromEnum(kernel.KernelFeatures.af_xdp) != 0,
         },
     );
 }
@@ -69,6 +72,8 @@ pub fn main() !void {
         .{ .major = 3, .minor = 2, .patch = 0 },
         .{ .major = 3, .minor = 10, .patch = 0 },
         .{ .major = 3, .minor = 11, .patch = 0 },
+        .{ .major = 3, .minor = 19, .patch = 0 },
+        .{ .major = 4, .minor = 0, .patch = 0 },
         .{ .major = 4, .minor = 18, .patch = 0 },
         .{ .major = 5, .minor = 15, .patch = 0 },
     };
@@ -91,7 +96,9 @@ pub fn main() !void {
     try expectLabelled(table[3].detectFeatures() & @intFromEnum(kernel.KernelFeatures.ring_v3) != 0, "3.2 should have ring_v3");
     try expectLabelled(table[4].detectFeatures() & @intFromEnum(kernel.KernelFeatures.busy_poll) == 0, "3.10 should not have busy_poll");
     try expectLabelled(table[5].detectFeatures() & @intFromEnum(kernel.KernelFeatures.busy_poll) != 0, "3.11 should have busy_poll");
-    try expectLabelled(table[6].detectFeatures() & @intFromEnum(kernel.KernelFeatures.af_xdp) != 0, "4.18 should have af_xdp");
+    try expectLabelled(table[6].detectFeatures() & @intFromEnum(kernel.KernelFeatures.ebpf) != 0, "3.19 should have ebpf");
+    try expectLabelled(table[7].detectFeatures() & @intFromEnum(kernel.KernelFeatures.hw_tstamp) != 0, "4.0 should have hw_tstamp");
+    try expectLabelled(table[8].detectFeatures() & @intFromEnum(kernel.KernelFeatures.af_xdp) != 0, "4.18 should have af_xdp");
 
     try expectLabelled(
         (try resolveBufferModeForProbe(legacy_features, .ring_mmap, true)) == .copy,

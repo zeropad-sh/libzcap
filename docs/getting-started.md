@@ -74,9 +74,11 @@ The examples in this section use `zpcap.h` for compatibility parity.
 `libzcap` exposes `zpcap_*` APIs as its C interface.
 
 - Live capture: `zpcap_open_live`, `zpcap_loop`, `zpcap_next`
+- Callback capture: `zpcap_dispatch`
 - Offline replay: `zpcap_open_offline`
 - Filters: `zpcap_compile`, `zpcap_setfilter`, `zpcap_freecode`
-- Dumping: `zpcap_dump_open`, `zpcap_dump`, `zpcap_dump_close`
+- Dumping: `zpcap_dump_open`, `zpcap_dump`, `zpcap_dump_flush`, `zpcap_dump_close`
+- Diagnostics: `zpcap_lib_version()`, `zpcap_strerror()`, `zpcap_perror()`
 
 ## 6. Permissions
 
@@ -94,10 +96,12 @@ The examples in this section use `zpcap.h` for compatibility parity.
   - [c99-offline-protocol-stats.md](./examples/c99-offline-protocol-stats.md)
   - [c99-live-options.md](./examples/c99-live-options.md)
   - [c99-find-devices.md](./examples/c99-find-devices.md)
-- [c99-nonblocking-stats.md](./examples/c99-nonblocking-stats.md)
+  - [c99-nonblocking-stats.md](./examples/c99-nonblocking-stats.md)
+  - [c99-error-surface.md](./examples/c99-error-surface.md)
   - [c99-send-packet.md](./examples/c99-send-packet.md)
   - [c99-async-select.md](./examples/c99-async-select.md)
   - [c99-linux-kernel-features.md](./examples/c99-linux-kernel-features.md)
+  - [c99-dump-flush.md](./examples/c99-dump-flush.md)
 - C++11 full sample:
   - [cpp11-offline-read.md](./examples/cpp11-offline-read.md)
   - [cpp11-offline-split.md](./examples/cpp11-offline-split.md)
@@ -105,6 +109,8 @@ The examples in this section use `zpcap.h` for compatibility parity.
   - [cpp11-find-devices.md](./examples/cpp11-find-devices.md)
   - [cpp11-nonblocking-stats.md](./examples/cpp11-nonblocking-stats.md)
   - [cpp11-send-packet.md](./examples/cpp11-send-packet.md)
+  - [cpp11-error-surface.md](./examples/cpp11-error-surface.md)
+  - [cpp11-dump-flush.md](./examples/cpp11-dump-flush.md)
   - [cpp11-async-select.md](./examples/cpp11-async-select.md)
   - [cpp11-async-native-wait.md](./examples/cpp11-async-native-wait.md)
 
@@ -125,3 +131,14 @@ safe fallback rules and report a clear error for unsupported options.
 
 Advanced workflow:
 - [Advanced Workflows](./features/advanced-workflows.md)
+
+## 9. Error and runtime introspection
+
+- `zpcap_lib_version()` reports the runtime semantic library version string.
+- `zpcap_strerror(errnum)` maps numeric compatibility-style codes to readable text.
+- `zpcap_perror(handle, prefix)` prints a prefixed message for the current handle state.
+- `zpcap_dispatch()` runs callback-based packet processing with same stop behavior as `zpcap_loop()`.
+
+You can learn these APIs end-to-end in:
+- [C99 Error Surface](./examples/c99-error-surface.md)
+- [C++11 Error Surface](./examples/cpp11-error-surface.md)

@@ -18,9 +18,11 @@
 - FD-based async integration (`zpcap_get_selectable_fd`) for event loops on supported platforms
 - Native event handle integration (`zpcap_getevent`) where the backend exposes one
 - Per-handle stats (`zpcap_stats`)
+- Buffer mode introspection (`zpcap_get_buffer_mode`) for feature-aware startup debugging
+- Diagnostics helpers for modern error handling (`zpcap_lib_version`, `zpcap_strerror`, `zpcap_perror`, `zpcap_geterrnum`)
 - Loop callback processing
 - BPF compile/apply/free
-- Dumper open/dump/close
+- Dumper open/dump/close, plus `zpcap_dump_flush`
 - Optional feature-aware open path on Linux (`zpcap_open_live_ex`)
 - Runtime feature probes (`zpcap_detect_features`, `zpcap_kernel_version`)
 

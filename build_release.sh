@@ -5,9 +5,9 @@
 #
 # Examples:
 #   ./build_release.sh              # build all platforms
-#   ./build_release.sh 0.2.0 linux  # build only linux
+#   ./build_release.sh 0.4.0 linux  # build only linux
 #
-# Outputs to ./releases/ with tars named like libzcap-v0.2.0-linux-x86_64.tar.gz
+# Outputs to ./releases/ with tars named like libzcap-v0.4.0-linux-x86_64.tar.gz
 
 set -euo pipefail
 
@@ -15,7 +15,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 cd "$SCRIPT_DIR"
 
 PROJECT_NAME="libzcap"
-DEFAULT_VERSION="0.2.0"
+DEFAULT_VERSION="0.4.0"
 VERSION=${1:-$DEFAULT_VERSION}
 PLATFORM=${2:-all}
 RELEASE_DIR="releases"

@@ -76,3 +76,30 @@ binary that adapts automatically:
 
 See:
 - [C99 Linux Kernel Features](../examples/c99-linux-kernel-features.md)
+
+## 8) Diagnostics-first workflow
+
+For command line tools and services, capture startup can include fast version and
+error-surface checks:
+
+- Print `zpcap_lib_version()` at startup for compatibility logs.
+- Resolve expected error labels with `zpcap_strerror(...)`.
+- Print runtime errors with `zpcap_perror(...)` when API validation fails.
+- Use `zpcap_dispatch()` for explicit callback-driven loops.
+
+See:
+- [C99 Error Surface](../examples/c99-error-surface.md)
+- [C++11 Error Surface](../examples/cpp11-error-surface.md)
+
+## 9) Durable Offline Dumping
+
+When writing long-lived capture archives, flush the output periodically to bound loss
+in the event of process termination:
+
+- Use `zpcap_dump_open()` once with a stable output path.
+- Call `zpcap_dump()` per packet as normal.
+- Call `zpcap_dump_flush()` at intervals to force buffered data to disk.
+
+See:
+- [C99 Dump Flush](../examples/c99-dump-flush.md)
+- [C++11 Dump Flush](../examples/cpp11-dump-flush.md)

@@ -21,12 +21,16 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
 - [C99 Device Discovery](./examples/c99-find-devices.md): list capture interfaces and get the default device.
 - [C99 Non-Blocking + Stats](./examples/c99-nonblocking-stats.md): modern async style capture loop and stats.
 - [C99 Packet Injection](./examples/c99-send-packet.md): `zpcap_sendpacket` and `zpcap_send`.
+- [C99 Error Surface](./examples/c99-error-surface.md): `zpcap_lib_version`, `zpcap_strerror`, `zpcap_perror`, `zpcap_dispatch`.
+- [C99 Dump Flush](./examples/c99-dump-flush.md): checkpointed durability with `zpcap_dump_flush`.
 - [C99 Async Select Loop](./examples/c99-async-select.md): event-driven capture with
   `zpcap_get_selectable_fd` (or polling fallback when fd integration is unavailable).
 - [C99 Linux Kernel Features](./examples/c99-linux-kernel-features.md): detect support for `ring_mmap`, fanout, and busy-poll, then request safe fallbacks.
 - [C++11 Device Discovery](./examples/cpp11-find-devices.md): C++ version of interface listing and default lookup.
 - [C++11 Non-Blocking + Stats](./examples/cpp11-nonblocking-stats.md): `setnonblock`, `next_ex`, and stats in C++.
 - [C++11 Packet Injection](./examples/cpp11-send-packet.md): equivalent C++ sample for send APIs.
+- [C++11 Error Surface](./examples/cpp11-error-surface.md): `zpcap_lib_version`, `zpcap_strerror`, `zpcap_perror`, `zpcap_dispatch`.
+- [C++11 Dump Flush](./examples/cpp11-dump-flush.md): checkpointed durability with `zpcap_dump_flush`.
 - [C++11 Async Select Loop](./examples/cpp11-async-select.md): event-driven capture with
   `zpcap_get_selectable_fd` (or polling fallback when fd integration is unavailable).
 - [C++11 Native Event Wait](./examples/cpp11-async-native-wait.md): adaptive async loop with
@@ -51,8 +55,10 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
   - [Find Devices + Default](./examples/c99-find-devices.md)
   - [Non-Blocking + Stats](./examples/c99-nonblocking-stats.md)
   - [Packet Injection](./examples/c99-send-packet.md)
+  - [Error Surface](./examples/c99-error-surface.md)
   - [Async Select Loop](./examples/c99-async-select.md)
   - [Linux Kernel Features](./examples/c99-linux-kernel-features.md)
+  - [Dump Flush](./examples/c99-dump-flush.md)
 - If you need a full sample in C++11, open:
   - [Offline PCAP Reader](./examples/cpp11-offline-read.md)
   - [Offline IPv4 Splitter](./examples/cpp11-offline-split.md)
@@ -60,5 +66,7 @@ drop-in `zpcap` C ABI for quick migration from `libpcap`.
   - [Find Devices + Default](./examples/cpp11-find-devices.md)
   - [Non-Blocking + Stats](./examples/cpp11-nonblocking-stats.md)
   - [Packet Injection](./examples/cpp11-send-packet.md)
+  - [Error Surface](./examples/cpp11-error-surface.md)
   - [Async Select Loop](./examples/cpp11-async-select.md)
   - [Native Event Wait](./examples/cpp11-async-native-wait.md)
+  - [Dump Flush](./examples/cpp11-dump-flush.md)

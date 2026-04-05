@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const maxInt = std.math.maxInt;
 
 const cBPF = @import("../filter/cbpf.zig");
 const filter_compiler = @import("../filter/compiler.zig");
@@ -11,11 +12,26 @@ const libzcap = struct {
     pub const CaptureOptions = @import("../capture/handle.zig").CaptureOptions;
     pub const PacketView = @import("../capture/handle.zig").PacketView;
     pub const kernel = @import("../capture/kernel.zig");
+    pub const stats = @import("../stats.zig");
 };
 
 const ZpcapError = error{
     UnsupportedPlatform,
 };
+
+const ZPCAP_LIB_VERSION = "0.4.0";
+const ZPCAP_ERROR_OK: c_int = 0;
+const ZPCAP_ERROR_NO_MEMORY: c_int = 100;
+const ZPCAP_ERROR_INVALID_ARGUMENT: c_int = 101;
+const ZPCAP_ERROR_NOT_ACTIVATED: c_int = 102;
+const ZPCAP_ERROR_NO_SUCH_DEVICE: c_int = 103;
+const ZPCAP_ERROR_PERM_DENIED: c_int = 104;
+const ZPCAP_ERROR_UNSUPPORTED: c_int = 105;
+const ZPCAP_ERROR_BUSY: c_int = 106;
+const ZPCAP_ERROR_TIMEOUT: c_int = 107;
+const ZPCAP_ERROR_NOT_IMPLEMENTED: c_int = 108;
+const ZPCAP_ERROR_IO: c_int = 109;
+const ZPCAP_ERROR_UNKNOWN: c_int = 255;
 
 pub const zpcap_t = opaque {};
 
@@ -59,6 +75,11 @@ pub const zpcap_stat_t = extern struct {
 
 const ZPCAP_ERRBUF_SIZE: usize = 256;
 
+const ErrorTextPair = struct {
+    code: c_int,
+    message: []const u8,
+};
+
 const PcapSource = union(enum) {
     live: *libzcap.Handle,
     offline: *PcapReader,
@@ -83,6 +104,8 @@ const PcapContext = struct {
     non_blocking: bool = false,
     break_loop: bool = false,
     next_pkt: zpcap_pkthdr = undefined,
+    last_error_code: c_int = ZPCAP_ERROR_OK,
+    last_error: [ZPCAP_ERRBUF_SIZE]u8 = [_]u8{0} ** ZPCAP_ERRBUF_SIZE,
     stats: zpcap_stat_t = .{
         .ps_recv = 0,
         .ps_drop = 0,
@@ -154,6 +177,59 @@ fn setText(errbuf: ?[*]u8, text: []const u8) void {
     buf[len] = 0;
 }
 
+fn setContextText(ctx: *PcapContext, code: c_int, text: []const u8) void {
+    setText(ctx.last_error[0..].ptr, text);
+    ctx.last_error_code = code;
+}
+
+fn clearContextState(ctx: *PcapContext) void {
+    ctx.last_error_code = ZPCAP_ERROR_OK;
+    setText(ctx.last_error[0..].ptr, "");
+}
+
+fn classifyZigError(err: anyerror) ErrorTextPair {
+    return switch (err) {
+        error.OutOfMemory => .{ .code = ZPCAP_ERROR_NO_MEMORY, .message = "out of memory" },
+        error.InvalidArgument, error.InvalidSnaplen => .{ .code = ZPCAP_ERROR_INVALID_ARGUMENT, .message = "invalid argument" },
+        error.NoSuchDevice, error.FileNotFound => .{ .code = ZPCAP_ERROR_NO_SUCH_DEVICE, .message = "device or file not found" },
+        error.PermissionDenied, error.AccessDenied => .{ .code = ZPCAP_ERROR_PERM_DENIED, .message = "permission denied" },
+        error.Timeout => .{ .code = ZPCAP_ERROR_TIMEOUT, .message = "operation timed out" },
+        error.UnsupportedPlatform => .{ .code = ZPCAP_ERROR_UNSUPPORTED, .message = "unsupported platform" },
+        error.SymbolNotFound, error.LibraryNotFound => .{ .code = ZPCAP_ERROR_NOT_IMPLEMENTED, .message = "optional runtime symbol not available" },
+        error.InvalidFilter => .{ .code = ZPCAP_ERROR_INVALID_ARGUMENT, .message = "invalid filter" },
+        error.RingSetupFailed => .{ .code = ZPCAP_ERROR_IO, .message = "ring setup failed" },
+        error.DeviceNotUp => .{ .code = ZPCAP_ERROR_IO, .message = "device is down" },
+        error.BrokenPipe, error.Sigpipe => .{ .code = ZPCAP_ERROR_IO, .message = "i/o failure" },
+        else => .{ .code = ZPCAP_ERROR_UNKNOWN, .message = @errorName(err) },
+    };
+}
+
+fn recordError(ctx: ?*PcapContext, errbuf: ?[*]u8, err: anyerror) void {
+    const info = classifyZigError(err);
+    if (ctx) |c| {
+        setContextText(c, info.code, info.message);
+    } else {
+        setText(errbuf, info.message);
+    }
+}
+
+fn errorByCode(errnum: c_int) []const u8 {
+    return switch (errnum) {
+        ZPCAP_ERROR_OK => "no error",
+        ZPCAP_ERROR_NO_MEMORY => "out of memory",
+        ZPCAP_ERROR_INVALID_ARGUMENT => "invalid argument",
+        ZPCAP_ERROR_NOT_ACTIVATED => "not activated",
+        ZPCAP_ERROR_NO_SUCH_DEVICE => "device or file not found",
+        ZPCAP_ERROR_PERM_DENIED => "permission denied",
+        ZPCAP_ERROR_UNSUPPORTED => "unsupported platform",
+        ZPCAP_ERROR_BUSY => "operation would block",
+        ZPCAP_ERROR_TIMEOUT => "operation timed out",
+        ZPCAP_ERROR_NOT_IMPLEMENTED => "not implemented",
+        ZPCAP_ERROR_IO => "io failure",
+        else => "unknown error",
+    };
+}
+
 fn toHeader(out: *zpcap_pkthdr, frame: PacketFrame) void {
     out.caplen = frame.captured_len;
     out.len = frame.original_len;
@@ -213,6 +289,7 @@ fn captureLoopCore(
     callback: zpcap_handler,
     user: ?[*]u8,
 ) c_int {
+    clearContextState(ctx);
     var pkts: c_int = 0;
     var hdr: zpcap_pkthdr = undefined;
 
@@ -222,7 +299,10 @@ fn captureLoopCore(
             break;
         }
 
-        const result = nextPacket(ctx) catch return -1;
+        const result = nextPacket(ctx) catch |err| {
+            recordError(ctx, null, err);
+            return -1;
+        };
         switch (result) {
             .packet => |frame| {
                 toHeader(&hdr, frame);
@@ -334,7 +414,7 @@ fn openLiveWithOptions(
         .busy_poll_usec = cfg.busy_poll_usec,
         .fallback_to_copy = cfg.fallback_to_copy,
     }) catch |err| {
-        setText(errbuf, @errorName(err));
+        recordError(null, errbuf, err);
         return null;
     };
 
@@ -384,7 +464,7 @@ export fn zpcap_open_offline(fname: [*:0]const u8, errbuf: ?[*]u8) ?*zpcap_t {
     errdefer alloc.destroy(r);
 
     r.* = PcapReader.open(path) catch |err| {
-        setText(errbuf, @errorName(err));
+        recordError(null, errbuf, err);
         return null;
     };
 
@@ -404,11 +484,15 @@ export fn zpcap_open_offline(fname: [*:0]const u8, errbuf: ?[*]u8) ?*zpcap_t {
 
 export fn zpcap_next(p: *zpcap_t, h: [*]zpcap_pkthdr) ?[*]u8 {
     const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    clearContextState(ctx);
     if (ctx.break_loop) {
         ctx.break_loop = false;
     }
 
-    const result = nextPacketBlocking(ctx) catch return null;
+    const result = nextPacketBlocking(ctx) catch |err| {
+        recordError(ctx, null, err);
+        return null;
+    };
     switch (result) {
         .packet => |frame| {
             toHeader(&h[0], frame);
@@ -421,12 +505,16 @@ export fn zpcap_next(p: *zpcap_t, h: [*]zpcap_pkthdr) ?[*]u8 {
 
 export fn zpcap_next_ex(p: *zpcap_t, h: [*]*zpcap_pkthdr, data: [*][*]const u8) c_int {
     const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    clearContextState(ctx);
 
     if (ctx.break_loop) {
         ctx.break_loop = false;
     }
 
-    const result = nextPacketBlocking(ctx) catch return -1;
+    const result = nextPacketBlocking(ctx) catch |err| {
+        recordError(ctx, null, err);
+        return -1;
+    };
     const is_offline = switch (ctx.source) {
         .live => false,
         .offline => true,
@@ -461,8 +549,27 @@ export fn zpcap_close(p: *zpcap_t) void {
 }
 
 export fn zpcap_geterr(p: *zpcap_t) [*:0]const u8 {
-    _ = p;
-    return "libzcap internally handled";
+    const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    return @ptrCast(ctx.last_error[0..].ptr);
+}
+
+export fn zpcap_geterrnum(p: *zpcap_t) c_int {
+    const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    return ctx.last_error_code;
+}
+
+export fn zpcap_lib_version() [*:0]const u8 {
+    return ZPCAP_LIB_VERSION;
+}
+
+export fn zpcap_strerror(errnum: c_int) [*:0]const u8 {
+    return errorByCode(errnum);
+}
+
+export fn zpcap_perror(p: ?*zpcap_t, prefix: ?[*:0]const u8) void {
+    const err_msg = if (p) |h| zpcap_geterr(h) else "No handle provided";
+    const label = if (prefix) |pfx| pfx else "zpcap_perror";
+    std.debug.print("{s}: {s}\n", .{ label, err_msg });
 }
 
 export fn zpcap_datalink(p: *zpcap_t) c_int {
@@ -486,14 +593,27 @@ export fn zpcap_breakloop(p: *zpcap_t) void {
 }
 
 export fn zpcap_compile(p: *zpcap_t, fp: *zpcap_bpf_program, str: [*:0]const u8, optimize: c_int, netmask: u32) c_int {
-    _ = p;
+    const ctx: *PcapContext = @ptrCast(@alignCast(p));
     _ = optimize;
     _ = netmask;
+    clearContextState(ctx);
+
+    if (fp.bf_len > 0) {
+        std.heap.page_allocator.free(fp.bf_insns[0..fp.bf_len]);
+    }
+    fp.bf_len = 0;
 
     const filter_str = std.mem.span(str);
-    const bytecode = filter_compiler.compileRuntime(std.heap.page_allocator, filter_str) catch {
+    const bytecode = filter_compiler.compileRuntime(std.heap.page_allocator, filter_str) catch |err| {
+        recordError(ctx, null, err);
         return -1;
     };
+
+    if (bytecode.len > std.math.maxInt(u32)) {
+        std.heap.page_allocator.free(bytecode);
+        recordError(ctx, null, error.OutOfMemory);
+        return -1;
+    }
 
     fp.bf_len = @intCast(bytecode.len);
     fp.bf_insns = bytecode.ptr;
@@ -502,13 +622,20 @@ export fn zpcap_compile(p: *zpcap_t, fp: *zpcap_bpf_program, str: [*:0]const u8,
 
 export fn zpcap_setfilter(p: *zpcap_t, fp: *zpcap_bpf_program) c_int {
     const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    clearContextState(ctx);
     switch (ctx.source) {
         .live => |live_h| {
             const insns = fp.bf_insns[0..fp.bf_len];
-            live_h.setFilter(insns) catch return -1;
+            live_h.setFilter(insns) catch |err| {
+                recordError(ctx, null, err);
+                return -1;
+            };
             return 0;
         },
-        .offline => return -1,
+        .offline => {
+            recordError(ctx, null, ZpcapError.UnsupportedPlatform);
+            return -1;
+        },
     }
 }
 
@@ -728,13 +855,14 @@ export fn zpcap_findalldevs(alldevs: ?[*]?*zpcap_if_t, errbuf: ?[*]u8) c_int {
     const alloc = std.heap.page_allocator;
     if (alldevs == null) {
         setText(errbuf, "alldevs is null");
+        recordError(null, errbuf, error.InvalidArgument);
         return -1;
     }
     const out = alldevs.?;
 
     setText(errbuf, "");
     const head = getIfEntries(alloc) catch |err| {
-        setText(errbuf, @errorName(err));
+        recordError(null, errbuf, err);
         out[0] = null;
         return -1;
     };
@@ -742,6 +870,7 @@ export fn zpcap_findalldevs(alldevs: ?[*]?*zpcap_if_t, errbuf: ?[*]u8) c_int {
     out[0] = head orelse null;
     if (head == null) {
         setText(errbuf, "No capture devices found");
+        recordError(null, errbuf, ZpcapError.UnsupportedPlatform);
     }
     return 0;
 }
@@ -765,7 +894,7 @@ export fn zpcap_lookupdev(errbuf: ?[*]u8) ?[*:0]u8 {
     }
 
     const all = getIfEntries(alloc) catch |err| {
-        setText(errbuf, @errorName(err));
+        recordError(null, errbuf, err);
         return null;
     };
     if (all == null) {
@@ -777,6 +906,7 @@ export fn zpcap_lookupdev(errbuf: ?[*]u8) ?[*:0]u8 {
     const copied = cloneCString(alloc, name) catch {
         setText(errbuf, "Out of memory duplicating device name");
         freeIfList(all.?, alloc);
+        recordError(null, errbuf, error.OutOfMemory);
         return null;
     };
     freeIfList(all.?, alloc);
@@ -785,17 +915,27 @@ export fn zpcap_lookupdev(errbuf: ?[*]u8) ?[*:0]u8 {
 }
 
 export fn zpcap_sendpacket(p: *zpcap_t, buf: [*]const u8, len: c_int) c_int {
-    if (len <= 0) return -1;
+    const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    clearContextState(ctx);
+    if (len <= 0) {
+        recordError(ctx, null, error.InvalidArgument);
+        return -1;
+    }
     const data_len: usize = @intCast(len);
     const data = buf[0..data_len];
 
-    const ctx: *PcapContext = @ptrCast(@alignCast(p));
     return switch (ctx.source) {
         .live => |live_h| {
-            live_h.send(data) catch return -1;
+            live_h.send(data) catch |err| {
+                recordError(ctx, null, err);
+                return -1;
+            };
             return 0;
         },
-        .offline => -1,
+        .offline => {
+            recordError(ctx, null, error.InvalidArgument);
+            return -1;
+        },
     };
 }
 
@@ -827,8 +967,10 @@ export fn zpcap_getevent(p: *zpcap_t) ?*anyopaque {
 
 export fn zpcap_setnonblock(p: *zpcap_t, nonblock: c_int, errbuf: ?[*]u8) c_int {
     const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    clearContextState(ctx);
     if (nonblock != 0 and nonblock != 1) {
         setText(errbuf, "Unsupported nonblocking mode value");
+        recordError(ctx, errbuf, error.InvalidArgument);
         return -1;
     }
 
@@ -836,20 +978,57 @@ export fn zpcap_setnonblock(p: *zpcap_t, nonblock: c_int, errbuf: ?[*]u8) c_int 
     switch (ctx.source) {
         .live => |live_h| {
             live_h.setNonBlocking(enabled) catch |err| {
-                setText(errbuf, @errorName(err));
+                recordError(ctx, errbuf, err);
                 return -1;
             };
             ctx.non_blocking = enabled;
         },
-        .offline => ctx.non_blocking = enabled,
+        .offline => {
+            ctx.non_blocking = enabled;
+            return 0;
+        },
     }
     return 0;
 }
 
 export fn zpcap_stats(p: *zpcap_t, stats_out: *zpcap_stat_t) c_int {
     const ctx: *PcapContext = @ptrCast(@alignCast(p));
-    stats_out.* = ctx.stats;
-    return 0;
+    switch (ctx.source) {
+        .live => |live_h| {
+            if (builtin.os.tag == .linux) {
+                if (libzcap.stats.CaptureStats.fromSocket(live_h.fd)) |s| {
+                    const recv = if (s.received > maxInt(u32)) maxInt(u32) else @intCast(s.received);
+                    const drop = if (s.dropped > maxInt(u32)) maxInt(u32) else @intCast(s.dropped);
+                    const ifdrop = if (s.ifdropped > maxInt(u32)) maxInt(u32) else @intCast(s.ifdropped);
+                    stats_out.* = .{
+                        .ps_recv = recv,
+                        .ps_drop = drop,
+                        .ps_ifdrop = ifdrop,
+                    };
+                    return 0;
+                }
+            }
+
+            stats_out.* = ctx.stats;
+            return 0;
+        },
+        .offline => |reader_h| {
+            _ = reader_h;
+            stats_out.* = ctx.stats;
+            return 0;
+        },
+    }
+}
+
+export fn zpcap_get_buffer_mode(p: *zpcap_t) c_int {
+    const ctx: *PcapContext = @ptrCast(@alignCast(p));
+    return switch (ctx.source) {
+        .live => |live_h| switch (live_h.options.buffer_mode) {
+            .copy => 0,
+            .ring_mmap => 1,
+        },
+        .offline => -1,
+    };
 }
 
 export fn zpcap_dump_open(p: *zpcap_t, fname: [*:0]const u8) ?*zpcap_dumper_t {
@@ -879,9 +1058,15 @@ export fn zpcap_dump(user: ?[*]u8, h: *const zpcap_pkthdr, sp: [*]const u8) void
     ctx.writer.write(timestamp_ns, data) catch {};
 }
 
+export fn zpcap_dump_flush(p: *zpcap_dumper_t) c_int {
+    const ctx: *DumperContext = @ptrCast(@alignCast(p));
+    ctx.writer.flush() catch return -1;
+    return 0;
+}
+
 export fn zpcap_dump_close(p: *zpcap_dumper_t) void {
     const ctx: *DumperContext = @ptrCast(@alignCast(p));
-    ctx.writer.flush() catch {};
+    _ = zpcap_dump_flush(p);
     ctx.writer.file.close();
     ctx.allocator.destroy(ctx.writer);
     ctx.allocator.destroy(ctx);

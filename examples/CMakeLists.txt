@@ -77,6 +77,8 @@ set(C_EXAMPLES
     13_send_packet.c
     18_async_select.c
     20_linux_kernel_features.c
+    21_error_surface.c
+    22_dump_flush.c
 )
 
 set(CPP_EXAMPLES
@@ -88,6 +90,8 @@ set(CPP_EXAMPLES
     17_send_packet.cpp
     18_async_select.cpp
     19_async_native_wait.cpp
+    21_error_surface.cpp
+    22_dump_flush.cpp
 )
 
 foreach(src IN LISTS C_EXAMPLES)

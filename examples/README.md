@@ -26,13 +26,17 @@ These standalone examples demonstrate 1-to-1 operational conformity with histori
 - **`19_async_native_wait.cpp`**: Cross-platform async event example that uses selectable FD,
   native event handles when available, and timed-poll fallback on either path.
 - **`20_linux_kernel_features.c`**: Linux feature probe and feature-aware open path for `ring_mmap`, fanout, and busy-poll with privilege-safe fallback.
+- **`21_error_surface.c` / `21_error_surface.cpp`**: Diagnostics and error-surface example using
+  `zpcap_lib_version`, `zpcap_strerror`, `zpcap_perror`, and `zpcap_dispatch`.
+- **`22_dump_flush.c` / `22_dump_flush.cpp`**: Offline durability example using
+  `zpcap_dump_flush` periodically and at shutdown.
 
 ### Compiling and Testing
 You must have successfully generated `libzcap` locally (via `zig build`) before testing.
 
 Optional: use one CMake command to build all examples at once:
 ```bash
-cmake -S examples -B examples/build -DLIBZCAP_ROOT="$(pwd)" -DLIBZCAP_BUILD_DIR="$(pwd)/zig-out/lib"
+cmake -S examples -B examples/build -DLIBZCAP_ROOT="$(pwd)" -DLIBZCAP_BUILD_DIR="$(pwd)/zig-out"
 cmake --build examples/build -j
 ```
 

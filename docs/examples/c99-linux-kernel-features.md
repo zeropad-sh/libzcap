@@ -4,6 +4,9 @@ This example shows how to use `zpcap_detect_features`, `zpcap_kernel_version`, a
 `zpcap_open_live_ex` to request modern Linux capture features and still run on
 older kernels by design.
 
+For modern kernels, it also shows the resolved runtime mode (`ring_mmap` vs `copy`)
+after `zpcap_open_live_ex` to confirm fallback behavior.
+
 ## Source (`examples/20_linux_kernel_features.c`)
 
 ```c
@@ -25,10 +28,24 @@ static void print_features(void) {
     printf("  ring_mmap=%s\n", (features & ZPCAP_FEATURE_RING_V3) ? "yes" : "no");
     printf("  fanout=%s\n", (features & ZPCAP_FEATURE_FANOUT) ? "yes" : "no");
     printf("  busy_poll=%s\n", (features & ZPCAP_FEATURE_BUSY_POLL) ? "yes" : "no");
+    printf("  ebpf=%s\n", (features & ZPCAP_FEATURE_EBPF) ? "yes" : "no");
+    printf("  hw_tstamp=%s\n", (features & ZPCAP_FEATURE_HW_TSTAMP) ? "yes" : "no");
+    printf("  af_xdp=%s\n", (features & ZPCAP_FEATURE_AF_XDP) ? "yes" : "no");
 }
 
 static int is_root_capture_error(const char *err) {
     return err != NULL && (strstr(err, "Permission") != NULL || strstr(err, "DENIED") != NULL);
+}
+
+static const char *buffer_mode_name(int mode) {
+    switch (mode) {
+        case ZPCAP_BUFFER_MODE_RING_MMAP:
+            return "ring_mmap";
+        case ZPCAP_BUFFER_MODE_COPY:
+            return "copy";
+        default:
+            return "offline";
+    }
 }
 
 int main(int argc, char **argv) {
@@ -93,7 +110,8 @@ int main(int argc, char **argv) {
 
     printf("Opened live handle on device: %s\n", device);
     printf("Requested mode: %s\n", use_ring ? "ring_mmap" : "copy");
-    printf("Runtime mode: %s\n", (features & ZPCAP_FEATURE_RING_V3) ? "ring_mmap" : "copy");
+    const int runtime_mode = zpcap_get_buffer_mode(handle);
+    printf("Runtime mode: %s\n", buffer_mode_name(runtime_mode));
 
     if (zpcap_setnonblock(handle, 1, errbuf) != 0) {
         fprintf(stderr, "setnonblock failed: %s\n", errbuf);
@@ -147,3 +165,4 @@ cmake --build examples/build
 - Open with `zpcap_open_live_ex` using `ring_mmap`, `fanout`, and `busy_poll` options.
 - Still get deterministic behavior when permissions are missing; the example exits with code 0 and explains the reason.
 - On kernels without `TPACKET_V3` or `SO_BUSY_POLL`, options are not required and behavior falls back safely.
+- Confirm the actual configured mode after open using `zpcap_get_buffer_mode`.
