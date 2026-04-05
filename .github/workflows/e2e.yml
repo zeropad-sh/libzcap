@@ -72,21 +72,16 @@ jobs:
           else
             echo "Running offline and compatibility examples..." | tee -a "$SUMMARY"
           fi
-          
           export ZCAP_LIB_PATH="zig-out/lib"
           export LD_LIBRARY_PATH="$ZCAP_LIB_PATH"
           export DYLD_LIBRARY_PATH="$ZCAP_LIB_PATH"
-          
-          ./examples/build/03_offline_read_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/07_offline_split_ipv4_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/09_offline_split_transport_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/08_offline_protocol_stats_c tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/11_findalldevs_lookupdev_c 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/12_nonblocking_stats_c tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/15_findalldevs_lookupdev_cpp 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/16_nonblocking_stats_cpp tests/sample.pcap 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/19_async_native_wait_cpp --offline tests/sample.pcap 18 2>&1 | tee -a "$SUMMARY"
-          ./examples/build/20_linux_kernel_features_c 2>&1 | tee -a "$SUMMARY"
+          export BUILD_DIR="examples/build"
+          export SUMMARY
+          export SAMPLE="tests/sample.pcap"
+          export OS="${{ runner.os }}"
+          export TIMEOUT_SECONDS=10
+
+          bash ./.github/scripts/run_examples_unix.sh
 
       - name: Compile and Link Examples (Windows / MinGW)
         if: runner.os == 'Windows'
@@ -135,15 +130,10 @@ jobs:
           Copy-Item -Path $ZCAP_DLL -Destination "examples\\build" -Force
           $env:PATH = "$(Get-Location)\\examples\\build;$env:PATH"
 
-          .\examples\build\03_offline_read_cpp.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
-          .\examples\build\07_offline_split_ipv4_cpp.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
-          .\examples\build\09_offline_split_transport_cpp.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
-          .\examples\build\08_offline_protocol_stats_c.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
-          .\examples\build\11_findalldevs_lookupdev_c.exe 2>&1 | Tee-Object -FilePath $Summary -Append
-          .\examples\build\12_nonblocking_stats_c.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
-          .\examples\build\15_findalldevs_lookupdev_cpp.exe 2>&1 | Tee-Object -FilePath $Summary -Append
-          .\examples\build\16_nonblocking_stats_cpp.exe tests\sample.pcap 2>&1 | Tee-Object -FilePath $Summary -Append
-          .\examples\build\19_async_native_wait_cpp.exe --offline tests\sample.pcap 18 2>&1 | Tee-Object -FilePath $Summary -Append
+          ./.github/scripts/run_examples_windows.ps1 `
+            -BuildDir "examples/build" `
+            -Summary $Summary `
+            -Sample "tests/sample.pcap"
 
       - name: Upload Telemetry Logs
         uses: actions/upload-artifact@v4
