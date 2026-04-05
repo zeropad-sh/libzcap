@@ -213,20 +213,20 @@ fn recordError(ctx: ?*PcapContext, errbuf: ?[*]u8, err: anyerror) void {
     }
 }
 
-fn errorByCode(errnum: c_int) []const u8 {
+fn errorByCode(errnum: c_int) [*:0]const u8 {
     return switch (errnum) {
-        ZPCAP_ERROR_OK => "no error",
-        ZPCAP_ERROR_NO_MEMORY => "out of memory",
-        ZPCAP_ERROR_INVALID_ARGUMENT => "invalid argument",
-        ZPCAP_ERROR_NOT_ACTIVATED => "not activated",
-        ZPCAP_ERROR_NO_SUCH_DEVICE => "device or file not found",
-        ZPCAP_ERROR_PERM_DENIED => "permission denied",
-        ZPCAP_ERROR_UNSUPPORTED => "unsupported platform",
-        ZPCAP_ERROR_BUSY => "operation would block",
-        ZPCAP_ERROR_TIMEOUT => "operation timed out",
-        ZPCAP_ERROR_NOT_IMPLEMENTED => "not implemented",
-        ZPCAP_ERROR_IO => "io failure",
-        else => "unknown error",
+        ZPCAP_ERROR_OK => c"no error",
+        ZPCAP_ERROR_NO_MEMORY => c"out of memory",
+        ZPCAP_ERROR_INVALID_ARGUMENT => c"invalid argument",
+        ZPCAP_ERROR_NOT_ACTIVATED => c"not activated",
+        ZPCAP_ERROR_NO_SUCH_DEVICE => c"device or file not found",
+        ZPCAP_ERROR_PERM_DENIED => c"permission denied",
+        ZPCAP_ERROR_UNSUPPORTED => c"unsupported platform",
+        ZPCAP_ERROR_BUSY => c"operation would block",
+        ZPCAP_ERROR_TIMEOUT => c"operation timed out",
+        ZPCAP_ERROR_NOT_IMPLEMENTED => c"not implemented",
+        ZPCAP_ERROR_IO => c"io failure",
+        else => c"unknown error",
     };
 }
 
@@ -997,9 +997,9 @@ export fn zpcap_stats(p: *zpcap_t, stats_out: *zpcap_stat_t) c_int {
         .live => |live_h| {
             if (builtin.os.tag == .linux) {
                 if (libzcap.stats.CaptureStats.fromSocket(live_h.fd)) |s| {
-                    const recv = if (s.received > maxInt(u32)) maxInt(u32) else @intCast(s.received);
-                    const drop = if (s.dropped > maxInt(u32)) maxInt(u32) else @intCast(s.dropped);
-                    const ifdrop = if (s.ifdropped > maxInt(u32)) maxInt(u32) else @intCast(s.ifdropped);
+                    const recv: u32 = if (s.received > maxInt(u32)) maxInt(u32) else @as(u32, @intCast(s.received));
+                    const drop: u32 = if (s.dropped > maxInt(u32)) maxInt(u32) else @as(u32, @intCast(s.dropped));
+                    const ifdrop: u32 = if (s.ifdropped > maxInt(u32)) maxInt(u32) else @as(u32, @intCast(s.ifdropped));
                     stats_out.* = .{
                         .ps_recv = recv,
                         .ps_drop = drop,
