@@ -1,6 +1,8 @@
 const lib = @import("../lib.zig");
 
-_ = lib;
+comptime {
+    _ = lib;
+}
 
 pub const _kernel_tests = @import("kernel_test.zig");
 pub const _proto_tests = @import("proto_test.zig");
