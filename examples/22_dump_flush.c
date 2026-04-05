@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     printf("final zpcap_dump_flush rc=%d\n", final_flush);
     printf("written packets=%" PRIu32 "\n", written);
 
-    if (rc < 0) {
+    if (rc < 0 && rc != -2) {
         fprintf(stderr, "zpcap_next_ex failed: %d\n", rc);
         zpcap_dump_close(dumper);
         zpcap_close(handle);

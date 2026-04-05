@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
     std::cout << "final zpcap_dump_flush rc=" << final_flush << '\n';
     std::cout << "written packets=" << written << '\n';
 
-    if (rc < 0) {
+    if (rc < 0 && rc != -2) {
         std::cerr << "zpcap_next_ex failed: " << rc << '\n';
         zpcap_dump_close(dumper);
         zpcap_close(handle);
