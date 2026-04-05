@@ -214,19 +214,32 @@ fn recordError(ctx: ?*PcapContext, errbuf: ?[*]u8, err: anyerror) void {
 }
 
 fn errorByCode(errnum: c_int) [*:0]const u8 {
+    const ERR_NO_ERROR: [:0]const u8 = "no error";
+    const ERR_NO_MEMORY: [:0]const u8 = "out of memory";
+    const ERR_INVALID_ARGUMENT: [:0]const u8 = "invalid argument";
+    const ERR_NOT_ACTIVATED: [:0]const u8 = "not activated";
+    const ERR_NO_SUCH_DEVICE: [:0]const u8 = "device or file not found";
+    const ERR_PERM_DENIED: [:0]const u8 = "permission denied";
+    const ERR_UNSUPPORTED: [:0]const u8 = "unsupported platform";
+    const ERR_BUSY: [:0]const u8 = "operation would block";
+    const ERR_TIMEOUT: [:0]const u8 = "operation timed out";
+    const ERR_NOT_IMPLEMENTED: [:0]const u8 = "not implemented";
+    const ERR_IO: [:0]const u8 = "io failure";
+    const ERR_UNKNOWN: [:0]const u8 = "unknown error";
+
     return switch (errnum) {
-        ZPCAP_ERROR_OK => c"no error",
-        ZPCAP_ERROR_NO_MEMORY => c"out of memory",
-        ZPCAP_ERROR_INVALID_ARGUMENT => c"invalid argument",
-        ZPCAP_ERROR_NOT_ACTIVATED => c"not activated",
-        ZPCAP_ERROR_NO_SUCH_DEVICE => c"device or file not found",
-        ZPCAP_ERROR_PERM_DENIED => c"permission denied",
-        ZPCAP_ERROR_UNSUPPORTED => c"unsupported platform",
-        ZPCAP_ERROR_BUSY => c"operation would block",
-        ZPCAP_ERROR_TIMEOUT => c"operation timed out",
-        ZPCAP_ERROR_NOT_IMPLEMENTED => c"not implemented",
-        ZPCAP_ERROR_IO => c"io failure",
-        else => c"unknown error",
+        ZPCAP_ERROR_OK => ERR_NO_ERROR.ptr,
+        ZPCAP_ERROR_NO_MEMORY => ERR_NO_MEMORY.ptr,
+        ZPCAP_ERROR_INVALID_ARGUMENT => ERR_INVALID_ARGUMENT.ptr,
+        ZPCAP_ERROR_NOT_ACTIVATED => ERR_NOT_ACTIVATED.ptr,
+        ZPCAP_ERROR_NO_SUCH_DEVICE => ERR_NO_SUCH_DEVICE.ptr,
+        ZPCAP_ERROR_PERM_DENIED => ERR_PERM_DENIED.ptr,
+        ZPCAP_ERROR_UNSUPPORTED => ERR_UNSUPPORTED.ptr,
+        ZPCAP_ERROR_BUSY => ERR_BUSY.ptr,
+        ZPCAP_ERROR_TIMEOUT => ERR_TIMEOUT.ptr,
+        ZPCAP_ERROR_NOT_IMPLEMENTED => ERR_NOT_IMPLEMENTED.ptr,
+        ZPCAP_ERROR_IO => ERR_IO.ptr,
+        else => ERR_UNKNOWN.ptr,
     };
 }
 
